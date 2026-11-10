@@ -19,6 +19,8 @@
 //   DELETE /api/shelves/:id                        -> { ok: true }
 //   PUT    /api/shelves/:id/books/:bookId          -> { ok: true }
 //   DELETE /api/shelves/:id/books/:bookId          -> { ok: true }
+//   POST   /api/shelves/:id/books        body: { bookIds }  -> { added: number }
+//   POST   /api/shelves/:id/books/remove body: { bookIds }  -> { removed: number }
 //   GET    /api/books/:id/bookmarks                -> Bookmark[] (sorted by progress)
 //   POST   /api/books/:id/bookmarks body: { location, label, progress } -> Bookmark
 //   PATCH  /api/bookmarks/:id body: { label }       -> Bookmark
@@ -96,3 +98,5 @@ export interface LibraryStats {
   unread: number;
   byFormat: Record<string, number>;
 }
+
+export interface ShelfBooksBody { bookIds: string[] }

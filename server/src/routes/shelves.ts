@@ -1,6 +1,6 @@
 import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
-import type { Shelf } from '../../../shared/types.ts';
+import type { Shelf, ShelfBooksBody } from '../../../shared/types.ts';
 import { db } from '../db.ts';
 import { HttpError } from './books.ts';
 
@@ -66,4 +66,49 @@ shelves.delete('/shelves/:id/books/:bookId', (c) => {
   if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
   db.prepare('DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?').run(id, bookId);
   return c.json({ ok: true });
+});
+
+async function readBookIds(c: { req: { json: () => Promise<unknown> } }): Promise<string[]> {
+  let body: unknown;
+  try { body = await c.req.json(); } catch { throw new HttpError(400, 'invalid JSON body'); }
+  const ids = (body as Partial<ShelfBooksBody> | null)?.bookIds;
+  if (!Array.isArray(ids) || ids.length === 0 || ids.length > 5000 || !ids.every((i) => typeof i === 'string')) {
+    throw new HttpError(400, 'bookIds must be a non-empty array of strings (max 5000)');
+  }
+  return ids;
+}
+
+function bulk(shelfId: string, ids: string[], sql: string, params: (bookId: string) => (string | number)[]): number {
+  let changed = 0;
+  const stmt = db.prepare(sql);
+  const exists = db.prepare('SELECT 1 FROM books WHERE id = ?');
+  db.exec('BEGIN');
+  try {
+    for (const bookId of new Set(ids)) {
+      if (!exists.get(bookId)) continue;
+      changed += Number(stmt.run(...params(bookId)).changes);
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+  return changed;
+}
+
+shelves.post('/shelves/:id/books', async (c) => {
+  const id = c.req.param('id');
+  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  const ids = await readBookIds(c);
+  const now = new Date().toISOString();
+  const added = bulk(id, ids, 'INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at) VALUES (?,?,?)', (b) => [id, b, now]);
+  return c.json({ added });
+});
+
+shelves.post('/shelves/:id/books/remove', async (c) => {
+  const id = c.req.param('id');
+  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  const ids = await readBookIds(c);
+  const removed = bulk(id, ids, 'DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?', (b) => [id, b]);
+  return c.json({ removed });
 });

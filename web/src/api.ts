@@ -69,6 +69,10 @@ export const api = {
     request<{ ok: true }>(`/api/shelves/${shelfId}/books/${bookId}`, { method: 'PUT' }),
   removeFromShelf: (shelfId: string, bookId: string) =>
     request<{ ok: true }>(`/api/shelves/${shelfId}/books/${bookId}`, { method: 'DELETE' }),
+  addBooksToShelf: (shelfId: string, bookIds: string[]) =>
+    request<{ added: number }>(`/api/shelves/${shelfId}/books`, json('POST', { bookIds })),
+  removeBooksFromShelf: (shelfId: string, bookIds: string[]) =>
+    request<{ removed: number }>(`/api/shelves/${shelfId}/books/remove`, json('POST', { bookIds })),
   listBookmarks: (bookId: string) => request<Bookmark[]>(`/api/books/${bookId}/bookmarks`),
   createBookmark: (bookId: string, b: { location: string; label: string; progress: number }) =>
     request<Bookmark>(`/api/books/${bookId}/bookmarks`, json('POST', b)),

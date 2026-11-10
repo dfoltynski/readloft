@@ -33,6 +33,24 @@ export function useLibraryShortcuts({ onSearch, onUpload, onHelp }: ShortcutHand
   }, [onSearch, onUpload, onHelp]);
 }
 
+/** Escape clears the selection, Cmd/Ctrl+A selects all visible books. Ignored while typing or in dialogs/menus. */
+export function useSelectionShortcuts(active: boolean, onClear: () => void, onSelectAll: () => void) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.altKey || isTyping(e.target)) return;
+      if (document.querySelector('[role="dialog"], [role="alertdialog"], [role="menu"]')) return;
+      if (e.key === 'Escape' && active && !e.metaKey && !e.ctrlKey) {
+        onClear();
+      } else if ((e.key === 'a' || e.key === 'A') && (e.metaKey || e.ctrlKey) && !e.shiftKey) {
+        e.preventDefault();
+        onSelectAll();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [active, onClear, onSelectAll]);
+}
+
 /**
  * Remembers the scroll offset of `ref` per `key` (sessionStorage) and restores it
  * once `ready` becomes true, so returning from a book lands where you left.

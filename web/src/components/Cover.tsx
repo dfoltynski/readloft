@@ -28,6 +28,7 @@ export default function Cover({ book, large = false }: { book: Book; large?: boo
       {src && (
         <img
           ref={img}
+          draggable={false}
           className={`cover-img${loaded ? ' loaded' : ''}`}
           src={src}
           alt=""

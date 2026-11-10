@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { BookStatus, LibraryStats, Shelf } from '@shared/types';
 import { api } from '../api';
+import { BOOKS_DRAG_TYPE } from './BookCard';
 import { useTheme } from '../lib/hooks';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
@@ -39,6 +40,7 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
   const [renamingId, setRenamingId] = useState<string | null>(null);
   const [renameValue, setRenameValue] = useState('');
   const [menu, setMenu] = useState<{ shelf: Shelf; x: number; y: number } | null>(null);
+  const [dropShelfId, setDropShelfId] = useState<string | null>(null);
   const newInput = useRef<HTMLInputElement>(null);
 
   // Close the mobile drawer after navigating.
@@ -80,6 +82,22 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
       toast((e as Error).message, 'error');
     } finally {
       setScanning(false);
+    }
+  };
+
+  const isBookDrag = (e: React.DragEvent) => e.dataTransfer.types.includes(BOOKS_DRAG_TYPE);
+
+  const dropBooks = async (e: React.DragEvent, shelf: Shelf) => {
+    if (!isBookDrag(e)) return;
+    e.preventDefault();
+    setDropShelfId(null);
+    try {
+      const ids = JSON.parse(e.dataTransfer.getData(BOOKS_DRAG_TYPE)) as string[];
+      const r = await api.addBooksToShelf(shelf.id, ids);
+      toast(r.added === 0 ? `Already on “${shelf.name}”` : `Added ${r.added} book${r.added === 1 ? '' : 's'} to “${shelf.name}”`);
+      onChanged();
+    } catch (err) {
+      toast((err as Error).message, 'error');
     }
   };
 
@@ -141,7 +159,18 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
               <NavLink
                 key={s.id}
                 to={`/shelf/${s.id}`}
-                className={({ isActive }) => `side-item${isActive ? ' active' : ''}`}
+                className={({ isActive }) => `side-item${isActive ? ' active' : ''}${dropShelfId === s.id ? ' drop-target' : ''}`}
+                onDragOver={(e) => {
+                  if (!isBookDrag(e)) return;
+                  e.preventDefault();
+                  e.dataTransfer.dropEffect = 'copy';
+                  if (dropShelfId !== s.id) setDropShelfId(s.id);
+                }}
+                onDragLeave={(e) => {
+                  if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDropShelfId((cur) => (cur === s.id ? null : cur));
+                }}
+                onDrop={(e) => void dropBooks(e, s)}
+                draggable={false}
                 onContextMenu={(e) => {
                   e.preventDefault();
                   setMenu({ shelf: s, x: e.clientX, y: e.clientY });

@@ -2,14 +2,14 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Book, BookStatus } from '@shared/types';
 import { api, uploadFiles, type BookSort } from '../api';
-import BookCard from '../components/BookCard';
+import BookCard, { BOOKS_DRAG_TYPE } from '../components/BookCard';
 import ContextMenu, { type MenuItem } from '../components/ContextMenu';
 import Cover from '../components/Cover';
 import DeleteBookDialog from '../components/DeleteBookDialog';
-import { IconGrid, IconList, IconMenu, IconSearch, IconUpload } from '../components/Icons';
+import { IconClose, IconGrid, IconList, IconMenu, IconSearch, IconUpload } from '../components/Icons';
 import ShortcutsDialog from '../components/ShortcutsDialog';
 import Sidebar from '../components/Sidebar';
-import { useLibraryShortcuts, useScrollRestore } from '../lib/libraryHooks';
+import { useLibraryShortcuts, useSelectionShortcuts, useScrollRestore } from '../lib/libraryHooks';
 import { ensurePdfCovers } from '../lib/pdfCover';
 import { useToast } from '../components/Toast';
 import UploadOverlay from '../components/UploadOverlay';
@@ -56,6 +56,10 @@ export default function LibraryPage() {
   const [dragging, setDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
   const [showShortcuts, setShowShortcuts] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [anchor, setAnchor] = useState<string | null>(null);
+  const [draggingIds, setDraggingIds] = useState<string[] | null>(null);
+  const [shelfMenu, setShelfMenu] = useState<{ x: number; y: number } | null>(null);
   const searchInput = useRef<HTMLInputElement>(null);
   const fileInput = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -135,7 +139,9 @@ export default function LibraryPage() {
 
   useEffect(() => {
     let depth = 0;
-    const hasFiles = (e: DragEvent) => e.dataTransfer?.types.includes('Files');
+    // Chrome adds "Files" to image drags, so book drags are excluded explicitly.
+    const hasFiles = (e: DragEvent) =>
+      !!e.dataTransfer?.types.includes('Files') && !e.dataTransfer.types.includes(BOOKS_DRAG_TYPE);
     const enter = (e: DragEvent) => {
       if (!hasFiles(e)) return;
       e.preventDefault();
@@ -210,6 +216,80 @@ export default function LibraryPage() {
   }, [shelfId, activeShelf, status]);
 
   const list = books.data ?? [];
+
+  // ---- Selection ----
+  useEffect(() => {
+    setSelected((prev) => {
+      if (prev.size === 0 || !books.data) return prev;
+      const ids = new Set(books.data.map((b) => b.id));
+      const next = new Set([...prev].filter((id) => ids.has(id)));
+      return next.size === prev.size ? prev : next;
+    });
+  }, [books.data]);
+  useEffect(() => {
+    setSelected(new Set());
+    setAnchor(null);
+  }, [shelfId, status, urlQuery]);
+
+  const clearSelection = useCallback(() => setSelected(new Set()), []);
+  const selectAll = useCallback(() => setSelected(new Set(list.map((b) => b.id))), [list]);
+  useSelectionShortcuts(selected.size > 0, clearSelection, selectAll);
+
+  const onSelect = (book: Book, { shift, toggle }: { shift: boolean; toggle: boolean }) => {
+    const from = anchor ? list.findIndex((b) => b.id === anchor) : -1;
+    if (shift && from >= 0) {
+      const to = list.findIndex((b) => b.id === book.id);
+      const [a, z] = from < to ? [from, to] : [to, from];
+      setSelected((prev) => new Set([...prev, ...list.slice(a, z + 1).map((b) => b.id)]));
+    } else if (toggle || shift) {
+      setSelected((prev) => {
+        const next = new Set(prev);
+        if (!next.delete(book.id)) next.add(book.id);
+        return next;
+      });
+      setAnchor(book.id);
+    }
+  };
+
+  const getDragIds = (book: Book) => (selected.has(book.id) ? [...selected] : [book.id]);
+
+  const reportAdded = (name: string, added: number) =>
+    toast(added === 0 ? `Already on “${name}”` : `Added ${added} book${added === 1 ? '' : 's'} to “${name}”`);
+
+  const addSelectedToShelf = async (shelfIdTo: string, name: string) => {
+    const ids = [...selected];
+    try {
+      const r = await api.addBooksToShelf(shelfIdTo, ids);
+      reportAdded(name, r.added);
+      reloadAll();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  };
+
+  const addSelectedToNewShelf = async () => {
+    const name = window.prompt('New shelf name')?.trim();
+    if (!name) return;
+    try {
+      const shelf = await api.createShelf(name);
+      await addSelectedToShelf(shelf.id, shelf.name);
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  };
+
+  const removeSelectedFromShelf = async () => {
+    if (!shelfId) return;
+    const ids = [...selected];
+    try {
+      const r = await api.removeBooksFromShelf(shelfId, ids);
+      toast(`Removed ${r.removed} book${r.removed === 1 ? '' : 's'} from “${activeShelf?.name ?? 'shelf'}”`);
+      setSelected(new Set());
+      reloadAll();
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  };
   useScrollRestore(contentRef, location.pathname + location.search, !books.loading);
 
   const openSearch = useCallback(() => searchInput.current?.focus(), []);
@@ -299,7 +379,7 @@ export default function LibraryPage() {
           </label>
         </header>
 
-        <div className="content" ref={contentRef}>
+        <div className={`content${selected.size > 0 ? ' has-selection-bar' : ''}`} ref={contentRef}>
           {books.error && <div className="notice notice-error">Could not load books: {books.error.message}</div>}
 
           {continueReading.length > 0 && (
@@ -348,12 +428,56 @@ export default function LibraryPage() {
           ) : (
             <div className={view === 'grid' ? 'book-grid' : 'book-list'}>
               {list.map((b) => (
-                <BookCard key={b.id} book={b} view={view} onMenu={(book, x, y) => setMenu({ book, x, y })} />
+                <BookCard
+                  key={b.id}
+                  book={b}
+                  view={view}
+                  onMenu={(book, x, y) => setMenu({ book, x, y })}
+                  selected={selected.has(b.id)}
+                  selectionActive={selected.size > 0}
+                  onSelect={onSelect}
+                  getDragIds={getDragIds}
+                  dragging={!!draggingIds?.includes(b.id)}
+                  onDragChange={setDraggingIds}
+                />
               ))}
             </div>
           )}
         </div>
+
+        {selected.size > 0 && (
+          <div className="selection-bar" role="toolbar" aria-label="Selection actions">
+            <span className="selection-count">{selected.size} selected</span>
+            <button
+              className="btn"
+              aria-haspopup="menu"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                setShelfMenu({ x: r.left, y: r.top - 8 - 34 * ((shelves.data?.length ?? 0) + 1) });
+              }}
+            >
+              Add to shelf
+            </button>
+            {shelfId && <button className="btn" onClick={removeSelectedFromShelf}>Remove from shelf</button>}
+            <button className="btn btn-quiet" onClick={selectAll}>Select all</button>
+            <button className="icon-btn" aria-label="Clear selection" onClick={clearSelection}>
+              <IconClose size={16} />
+            </button>
+          </div>
+        )}
       </main>
+
+      {shelfMenu && (
+        <ContextMenu
+          x={shelfMenu.x}
+          y={shelfMenu.y}
+          onClose={() => setShelfMenu(null)}
+          items={[
+            ...(shelves.data ?? []).map((sh) => ({ label: sh.name, onSelect: () => addSelectedToShelf(sh.id, sh.name) })),
+            { label: 'New shelf…', separatorBefore: (shelves.data ?? []).length > 0, onSelect: addSelectedToNewShelf },
+          ]}
+        />
+      )}
 
       {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.book)} onClose={() => setMenu(null)} />}
       {toDelete && (
