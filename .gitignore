@@ -1,0 +1,7 @@
+node_modules/
+dist/
+data/
+books/
+web/public/foliate-js/
+.DS_Store
+*.log

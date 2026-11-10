@@ -1,0 +1,17 @@
+{
+  "name": "readloft",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Self-hosted ebook library and reader",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "type": "module",
+  "workspaces": ["server", "web"],
+  "scripts": {
+    "setup": "sh scripts/fetch-foliate.sh",
+    "dev": "npm run dev -w server & npm run dev -w web",
+    "build": "npm run build -w web",
+    "start": "npm run start -w server",
+    "typecheck": "npm run typecheck -w server && npm run typecheck -w web"
+  },
+  "engines": { "node": ">=24" }
+}

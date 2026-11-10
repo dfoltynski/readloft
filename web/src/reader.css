@@ -1,0 +1,78 @@
+/* Reader extras: themes, tabs, search, bookmarks, footnotes, help, night light controls. */
+
+/* Extra themes: chrome colors derive from --r-bg / --r-fg (set inline), only edge cases here. */
+.reader-black { --r-chrome: #0a0a0a; }
+.reader-paper { --r-chrome: color-mix(in srgb, var(--r-bg) 90%, var(--r-fg)); }
+.reader-popover .segmented { flex-wrap: wrap; }
+.reader-popover .segmented button { padding: 5px 8px; font-size: 12px; }
+
+/* Panel tabs */
+.reader .panel-head { padding-left: 8px; }
+.panel-tabs { display: flex; gap: 2px; }
+.panel-tabs button {
+  border: 0; background: transparent; color: inherit; padding: 6px 10px; border-radius: 6px; opacity: 0.7; font-size: 13px;
+}
+.panel-tabs button:hover { background: var(--r-hover); opacity: 1; }
+.panel-tabs button.active { opacity: 1; font-weight: 600; background: var(--r-hover); }
+
+/* Bookmarks */
+.bookmark-row { display: flex; align-items: center; }
+.bookmark-row .toc-item { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.bookmark-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.bookmark-meta { font-size: 11px; opacity: 0.6; }
+.bookmark-edit { flex: 1; min-width: 0; margin: 4px 8px; padding: 6px 8px; font: inherit; color: inherit; background: transparent; border: 1px solid currentColor; border-radius: 6px; }
+.bookmark-error { margin: 0 12px 6px; font-size: 12px; color: #d33; }
+.bookmark-row .icon-btn { margin-right: 8px; opacity: 0.6; }
+.bookmark-row .icon-btn:hover { opacity: 1; }
+
+/* Search */
+.search-form { padding: 10px 12px; position: sticky; top: 0; background: var(--r-chrome); z-index: 1; }
+.search-form input {
+  width: 100%; padding: 7px 10px; border-radius: 6px; border: 1px solid var(--r-line); background: transparent; color: inherit;
+}
+.search-status { padding: 0 16px 8px; font-size: 12px; opacity: 0.7; }
+.search-results { list-style: none; margin: 0; padding: 0; }
+.search-section { padding: 10px 16px 4px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.6; }
+.search-hit {
+  display: block; width: 100%; text-align: left; border: 0; background: transparent; color: inherit;
+  padding: 6px 16px; line-height: 1.4; font-size: 13px;
+}
+.search-hit:hover { background: var(--r-hover); }
+.search-excerpt mark { background: color-mix(in srgb, var(--accent) 35%, transparent); color: inherit; border-radius: 2px; padding: 0 1px; }
+
+/* Time left */
+.reader-time { font-size: 12px; opacity: 0.65; font-variant-numeric: tabular-nums; }
+
+/* Night light time inputs */
+.time-row { display: flex; align-items: center; gap: 8px; }
+.time-row input {
+  flex: 1; padding: 4px 6px; border-radius: 6px; border: 1px solid var(--r-line); background: transparent; color: inherit;
+}
+
+/* Footnote popover */
+.footnote-pop {
+  position: absolute; left: 50%; bottom: 72px; z-index: 30; width: min(560px, calc(100vw - 24px)); height: 180px;
+  transform: translateX(-50%); border-radius: 12px; overflow: hidden;
+  background: var(--r-chrome); color: var(--r-fg); box-shadow: var(--shadow-pop);
+  visibility: hidden; opacity: 0; transition: opacity 0.15s;
+}
+.footnote-pop.open { visibility: visible; opacity: 1; }
+.footnote-host { position: absolute; inset: 0; padding: 4px 8px; }
+.footnote-host foliate-view { width: 100%; height: 100%; }
+.footnote-close { position: absolute; top: 2px; right: 2px; z-index: 1; }
+
+/* Help overlay */
+.reader-help-scrim { position: absolute; inset: 0; z-index: 40; display: grid; place-items: center; background: rgba(0, 0, 0, 0.45); }
+.reader-help {
+  width: min(380px, calc(100vw - 32px)); padding: 18px 20px; border-radius: 12px; background: var(--r-chrome); color: var(--r-fg);
+  box-shadow: var(--shadow-pop); display: flex; flex-direction: column; gap: 12px;
+}
+.reader-help h2 { font-size: 16px; margin: 0; }
+.reader-help dl { margin: 0; display: flex; flex-direction: column; gap: 6px; }
+.reader-help dl > div { display: flex; justify-content: space-between; gap: 12px; font-size: 13px; }
+.reader-help dt { margin: 0; }
+.reader-help dd { margin: 0; opacity: 0.75; text-align: right; }
+.reader-help kbd {
+  font: inherit; font-size: 12px; padding: 1px 6px; border-radius: 4px; border: 1px solid var(--r-line); background: var(--r-hover);
+}
+.reader-help .btn { align-self: flex-end; }

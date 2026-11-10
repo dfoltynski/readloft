@@ -1,0 +1,12 @@
+services:
+  readloft:
+    build: .
+    container_name: readloft
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./books:/books   # your ebook folder (read/write: uploads land in /books/uploads)
+      - ./data:/data     # database + cached covers
+    environment:
+      - SCAN_INTERVAL_MINUTES=30
+    restart: unless-stopped
