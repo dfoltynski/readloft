@@ -1,0 +1,59 @@
+{
+  "name": "@readloft/desktop",
+  "productName": "Readloft",
+  "version": "0.1.0",
+  "description": "Self-hosted ebook library and reader",
+  "license": "PolyForm-Noncommercial-1.0.0",
+  "author": "dfoltynski",
+  "private": true,
+  "type": "module",
+  "main": "main.js",
+  "scripts": {
+    "dev": "electron .",
+    "dist": "electron-builder --publish never",
+    "dist:dir": "electron-builder --dir --publish never"
+  },
+  "dependencies": {
+    "@hono/node-server": "^1.13.7",
+    "fast-xml-parser": "^4.5.1",
+    "hono": "^4.6.14",
+    "jszip": "^3.10.1",
+    "pdf-lib": "^1.17.1"
+  },
+  "devDependencies": {
+    "electron": "45.4.1",
+    "electron-builder": "^26.18.0"
+  },
+  "build": {
+    "appId": "app.readloft.desktop",
+    "productName": "Readloft",
+    "asar": false,
+    "npmRebuild": false,
+    "directories": { "buildResources": "build", "output": "release" },
+    "files": [
+      "main.js",
+      "package.json",
+      { "from": "../server/src", "to": "server/src", "filter": ["**/*"] },
+      { "from": "../shared", "to": "shared", "filter": ["**/*"] },
+      { "from": "../web/dist", "to": "web-dist", "filter": ["**/*", "!**/.git/**"] }
+    ],
+    "artifactName": "Readloft-${version}-${os}-${arch}.${ext}",
+    "mac": {
+      "category": "public.app-category.books",
+      "identity": null,
+      "target": [{ "target": "dmg", "arch": ["x64", "arm64"] }]
+    },
+    "linux": {
+      "category": "Office",
+      "maintainer": "dfoltynski",
+      "target": ["AppImage", "deb"]
+    },
+    "win": {
+      "target": [{ "target": "nsis", "arch": ["x64"] }]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    }
+  }
+}

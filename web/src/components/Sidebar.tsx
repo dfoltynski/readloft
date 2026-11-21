@@ -7,7 +7,7 @@ import { useTheme } from '../lib/hooks';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
 import {
-  IconBooks, IconCheck, IconCircle, IconLogo, IconMoon, IconPlus, IconReading, IconRefresh,
+  IconBooks, IconCheck, IconCircle, IconFolder, IconLogo, IconMoon, IconPlus, IconReading, IconRefresh,
   IconShelf, IconSun,
 } from './Icons';
 
@@ -41,6 +41,8 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
   const [renameValue, setRenameValue] = useState('');
   const [menu, setMenu] = useState<{ shelf: Shelf; x: number; y: number } | null>(null);
   const [dropShelfId, setDropShelfId] = useState<string | null>(null);
+  const manualShelves = shelves.filter((s) => s.source === 'manual');
+  const folderShelves = shelves.filter((s) => s.source === 'folder');
   const newInput = useRef<HTMLInputElement>(null);
 
   // Close the mobile drawer after navigating.
@@ -140,7 +142,7 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
               <IconPlus size={15} />
             </button>
           </div>
-          {shelves.map((s) =>
+          {manualShelves.map((s) =>
             renamingId === s.id ? (
               <input
                 key={s.id}
@@ -216,6 +218,28 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
               <IconPlus />
               <span className="side-label">New shelf</span>
             </button>
+          )}
+
+          {folderShelves.length > 0 && (
+            <>
+              <div className="side-heading">Folders</div>
+              {folderShelves.map((s) => {
+                const segs = (s.folder ?? s.name).split('/');
+                return (
+                  <NavLink
+                    key={s.id}
+                    to={`/shelf/${s.id}`}
+                    title={segs.join(' / ')}
+                    className={({ isActive }) => `side-item${isActive ? ' active' : ''}`}
+                    style={{ paddingLeft: 8 + (segs.length - 1) * 14 }}
+                  >
+                    <IconFolder />
+                    <span className="side-label">{segs[segs.length - 1]}</span>
+                    <span className="side-count">{s.bookCount}</span>
+                  </NavLink>
+                );
+              })}
+            </>
           )}
         </nav>
 

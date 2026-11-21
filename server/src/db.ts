@@ -51,6 +51,8 @@ const MIGRATIONS: string[] = [
     created_at TEXT NOT NULL
   );
   CREATE INDEX idx_bookmarks_book ON bookmarks(book_id, progress);`,
+  `ALTER TABLE shelves ADD COLUMN folder TEXT;
+  CREATE UNIQUE INDEX idx_shelves_folder ON shelves(folder) WHERE folder IS NOT NULL;`,
 ];
 
 fs.mkdirSync(DATA_DIR, { recursive: true });

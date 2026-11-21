@@ -5,3 +5,4 @@ books/
 web/public/foliate-js/
 .DS_Store
 *.log
+desktop/release/

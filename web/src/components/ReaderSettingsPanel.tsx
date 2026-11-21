@@ -98,6 +98,7 @@ export default function ReaderSettingsPanel({ settings: s, fixedLayout, onChange
           )}
         </>
       )}
+      <Toggle label="Read aloud: pause at images & tables" value={s.ttsPauseAtMedia} onChange={(ttsPauseAtMedia) => onChange({ ttsPauseAtMedia })} />
       {wakeLockSupported && (
         <Toggle label="Keep screen awake" value={s.keepAwake} onChange={(keepAwake) => onChange({ keepAwake })} />
       )}

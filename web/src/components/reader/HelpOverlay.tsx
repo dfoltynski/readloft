@@ -5,9 +5,11 @@ const SHORTCUTS: [string, string][] = [
   ['T', 'Table of contents'],
   ['B', 'Toggle bookmark'],
   ['Ctrl/Cmd + F', 'Search in book'],
+  ['R', 'Read aloud: start / pause / resume'],
+  ['[ / ]', 'Previous / next sentence (reading aloud)'],
   ['F', 'Fullscreen'],
   ['?', 'This help'],
-  ['Esc', 'Close panels'],
+  ['Esc', 'Close panels / stop reading aloud'],
 ];
 
 export default function HelpOverlay({ onClose }: { onClose: () => void }) {

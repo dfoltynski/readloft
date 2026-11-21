@@ -9,7 +9,7 @@ import { db, getBook, getBookRow, rowToBook, shelfIdsFor, type BookRow } from '.
 import { LIBRARY_DIR, UPLOADS_DIR, safeLibraryPath } from '../config.ts';
 import { findCover, removeCover, saveCover } from '../covers.ts';
 import { detectImageExt } from '../metadata/util.ts';
-import { formatOf, indexFile, scanLibrary } from '../scanner.ts';
+import { formatOf, indexFile, scanLibrary, syncFolderShelves } from '../scanner.ts';
 
 export class HttpError extends Error {
   status: number;
@@ -150,6 +150,7 @@ books.delete('/books/:id', async (c) => {
   }
   db.prepare('DELETE FROM books WHERE id = ?').run(id);
   removeCover(id);
+  syncFolderShelves();
   return c.json({ ok: true });
 });
 

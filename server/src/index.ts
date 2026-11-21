@@ -30,8 +30,7 @@ app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));
 
 const hasWeb = fs.existsSync(path.join(WEB_DIST, 'index.html'));
 if (hasWeb) {
-  const root = path.relative(process.cwd(), WEB_DIST) || '.';
-  app.use('/*', serveStatic({ root }));
+  app.use('/*', serveStatic({ root: WEB_DIST }));
   const indexHtml = path.join(WEB_DIST, 'index.html');
   app.get('*', (c) => c.html(fs.readFileSync(indexHtml, 'utf8')));
 }

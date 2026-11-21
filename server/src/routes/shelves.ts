@@ -4,14 +4,24 @@ import type { Shelf, ShelfBooksBody } from '../../../shared/types.ts';
 import { db } from '../db.ts';
 import { HttpError } from './books.ts';
 
-interface ShelfRow { id: string; name: string; created_at: string; book_count: number }
+interface ShelfRow { id: string; name: string; created_at: string; folder: string | null; book_count: number }
 
-const toShelf = (r: ShelfRow): Shelf => ({ id: r.id, name: r.name, bookCount: r.book_count, createdAt: r.created_at });
+const toShelf = (r: ShelfRow): Shelf => ({ id: r.id, name: r.name, bookCount: r.book_count, createdAt: r.created_at,
+  source: r.folder === null ? 'manual' : 'folder', folder: r.folder });
 
 function getShelf(id: string): Shelf | null {
   const r = db.prepare(`SELECT s.*, (SELECT COUNT(*) FROM shelf_books sb WHERE sb.shelf_id = s.id) AS book_count
     FROM shelves s WHERE s.id = ?`).get(id) as unknown as ShelfRow | undefined;
   return r ? toShelf(r) : null;
+}
+
+function assertManual(id: string): Shelf {
+  const s = getShelf(id);
+  if (!s) throw new HttpError(404, 'shelf not found');
+  if (s.source === 'folder') {
+    throw new HttpError(409, 'Folder shelves are managed automatically from the library folder structure and cannot be changed');
+  }
+  return s;
 }
 
 async function readName(c: { req: { json: () => Promise<unknown> } }): Promise<string> {
@@ -26,7 +36,8 @@ export const shelves = new Hono();
 
 shelves.get('/shelves', (c) => {
   const rows = db.prepare(`SELECT s.*, (SELECT COUNT(*) FROM shelf_books sb WHERE sb.shelf_id = s.id) AS book_count
-    FROM shelves s ORDER BY s.name COLLATE NOCASE`).all() as unknown as ShelfRow[];
+    FROM shelves s ORDER BY (s.folder IS NOT NULL), CASE WHEN s.folder IS NULL THEN s.name END COLLATE NOCASE,
+    s.folder COLLATE NOCASE`).all() as unknown as ShelfRow[];
   return c.json(rows.map(toShelf));
 });
 
@@ -39,7 +50,7 @@ shelves.post('/shelves', async (c) => {
 
 shelves.patch('/shelves/:id', async (c) => {
   const id = c.req.param('id');
-  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  assertManual(id);
   const name = await readName(c);
   db.prepare('UPDATE shelves SET name = ? WHERE id = ?').run(name, id);
   return c.json(getShelf(id));
@@ -47,14 +58,14 @@ shelves.patch('/shelves/:id', async (c) => {
 
 shelves.delete('/shelves/:id', (c) => {
   const id = c.req.param('id');
-  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  assertManual(id);
   db.prepare('DELETE FROM shelves WHERE id = ?').run(id);
   return c.json({ ok: true });
 });
 
 shelves.put('/shelves/:id/books/:bookId', (c) => {
   const { id, bookId } = c.req.param();
-  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  assertManual(id);
   if (!db.prepare('SELECT 1 FROM books WHERE id = ?').get(bookId)) throw new HttpError(404, 'book not found');
   db.prepare('INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at) VALUES (?,?,?)')
     .run(id, bookId, new Date().toISOString());
@@ -63,7 +74,7 @@ shelves.put('/shelves/:id/books/:bookId', (c) => {
 
 shelves.delete('/shelves/:id/books/:bookId', (c) => {
   const { id, bookId } = c.req.param();
-  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  assertManual(id);
   db.prepare('DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?').run(id, bookId);
   return c.json({ ok: true });
 });
@@ -98,7 +109,7 @@ function bulk(shelfId: string, ids: string[], sql: string, params: (bookId: stri
 
 shelves.post('/shelves/:id/books', async (c) => {
   const id = c.req.param('id');
-  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  assertManual(id);
   const ids = await readBookIds(c);
   const now = new Date().toISOString();
   const added = bulk(id, ids, 'INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at) VALUES (?,?,?)', (b) => [id, b, now]);
@@ -107,7 +118,7 @@ shelves.post('/shelves/:id/books', async (c) => {
 
 shelves.post('/shelves/:id/books/remove', async (c) => {
   const id = c.req.param('id');
-  if (!getShelf(id)) throw new HttpError(404, 'shelf not found');
+  assertManual(id);
   const ids = await readBookIds(c);
   const removed = bulk(id, ids, 'DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?', (b) => [id, b]);
   return c.json({ removed });

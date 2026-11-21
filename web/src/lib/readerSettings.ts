@@ -23,6 +23,12 @@ export interface ReaderSettings {
   keepAwake: boolean;
   /** Animate page turns in paginated mode. */
   animate: boolean;
+  /** Read-aloud speech rate, 0.75..2. */
+  ttsRate: number;
+  /** Chosen voice URI per book language (primary subtag); empty = automatic. */
+  ttsVoices: Record<string, string>;
+  /** Pause read-aloud at images, tables and other skipped content. */
+  ttsPauseAtMedia: boolean;
 }
 
 export const DEFAULT_SETTINGS: ReaderSettings = {
@@ -38,6 +44,9 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   columns: 'auto',
   keepAwake: false,
   animate: true,
+  ttsRate: 1,
+  ttsVoices: {},
+  ttsPauseAtMedia: false,
 };
 
 const STORAGE_KEY = 'readloft.reader';

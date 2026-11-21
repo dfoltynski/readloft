@@ -6,7 +6,10 @@ import { api, fileUrl } from '../api';
 import { IconBack, IconClose, IconSettings, IconToc } from '../components/Icons';
 import NightLightOverlay from '../components/NightLightOverlay';
 import HelpOverlay from '../components/reader/HelpOverlay';
-import { IconBookmark, IconFullscreen, IconNightLight } from '../components/reader/ReaderIcons';
+import ContextMenu, { type MenuItem } from '../components/ContextMenu';
+import ReadAloudBar from '../components/reader/ReadAloudBar';
+import { useReadAloud } from '../components/reader/useReadAloud';
+import { IconBookmark, IconFullscreen, IconNightLight, IconSpeaker } from '../components/reader/ReaderIcons';
 import { findBookmarkOnPage, pageStart, type CfiModule } from '../components/reader/bookmarkUtils';
 import { useBookSearch } from '../components/reader/useBookSearch';
 import { useWakeLock } from '../components/reader/useWakeLock';
@@ -68,6 +71,8 @@ export default function ReaderPage() {
   const footnoteHostRef = useRef<HTMLDivElement>(null);
   const footnoteViewRef = useRef<FoliateView | null>(null);
   const cfiRef = useRef<CfiModule | null>(null);
+  const fileRef = useRef<File | null>(null);
+  const getFile = useCallback(() => fileRef.current, []);
 
   const [book, setBook] = useState<Book>();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
@@ -85,10 +90,26 @@ export default function ReaderPage() {
   const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
   const [helpOpen, setHelpOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
+  const [bookLang, setBookLang] = useState<string>();
+  const [menu, setMenu] = useState<{ x: number; y: number; range: Range | null; selected: string } | null>(null);
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const nightLight = useNightLight();
   const getView = useCallback(() => viewRef.current, []);
   const search = useBookSearch(getView);
+
+  const tts = useReadAloud({
+    bookId: id,
+    getView,
+    bookLang,
+    settings,
+    patchSettings: (patch) => setSettings((s) => ({ ...s, ...patch })),
+    fixedLayout,
+    format: book?.format,
+    getFile,
+    ready: state.kind === 'ready',
+  });
+  const ttsAvail = useRef(false);
+  ttsAvail.current = !tts.unavailable;
 
   const panelOpen = tocOpen || settingsOpen;
   const closePanels = useCallback(() => {
@@ -104,6 +125,7 @@ export default function ReaderPage() {
   const actions = useRef({
     toggleBookmark: () => {}, toggleFullscreen: () => {}, openSearch: () => {},
     toggleToc: () => {}, toggleHelp: () => {}, escape: () => {}, closeFootnote: () => {},
+    readAloud: () => {}, ttsPrev: () => {}, ttsNext: () => {},
   });
   useDismiss(settingsRef, settingsOpen, () => setSettingsOpen(false));
 
@@ -148,9 +170,14 @@ export default function ReaderPage() {
     },
     toggleHelp: () => setHelpOpen((h) => !h),
     closeFootnote: () => setFootnoteOpen(false),
+    readAloud: () => tts.toggle(),
+    ttsPrev: () => { if (tts.state.status !== 'idle') tts.prev(); },
+    ttsNext: () => { if (tts.state.status !== 'idle') tts.next(); },
     escape: () => {
       const l = live.current;
-      if (l.helpOpen) setHelpOpen(false);
+      if (menu) setMenu(null);
+      else if (l.helpOpen) setHelpOpen(false);
+      else if (tts.state.status !== 'idle' && !l.tocOpen) tts.stop();
       else if (l.footnoteOpen) setFootnoteOpen(false);
       else closePanels();
     },
@@ -209,11 +236,18 @@ export default function ReaderPage() {
       }
       if (isEditable(e.target) || e.metaKey || e.ctrlKey || e.altKey) return;
       const v = viewRef.current;
-      if (!v) return;
+      if (!v) {
+        // The book is still opening: say so instead of ignoring the key.
+        if (e.key === 'r' || e.key === 'R') { actions.current.readAloud(); e.preventDefault(); }
+        return;
+      }
       switch (e.key) {
         case 'f': case 'F': actions.current.toggleFullscreen(); break;
         case 'b': case 'B': actions.current.toggleBookmark(); break;
         case 't': case 'T': actions.current.toggleToc(); break;
+        case 'r': case 'R': actions.current.readAloud(); break;
+        case '[': actions.current.ttsPrev(); break;
+        case ']': actions.current.ttsNext(); break;
         case '?': actions.current.toggleHelp(); break;
         case 'ArrowLeft': void v.goLeft(); break;
         case 'ArrowRight': void v.goRight(); break;
@@ -279,6 +313,7 @@ export default function ReaderPage() {
         if (cancelled) return;
         // foliate-js detects the format from the file name, which our URL lacks.
         const file = new File([blob], `book.${b.format}`, { type: blob.type });
+        fileRef.current = file;
 
         // Loaded at runtime from public/, not bundled by Vite. Registers <foliate-view>.
         await runtimeImport(FOLIATE_VIEW_URL);
@@ -299,6 +334,25 @@ export default function ReaderPage() {
           const doc = e.detail.doc;
           doc.addEventListener('keydown', onKey);
           doc.addEventListener('mousemove', poke);
+          doc.addEventListener('contextmenu', (ev) => {
+            if (!ttsAvail.current) return;
+            ev.preventDefault();
+            const frame = doc.defaultView?.frameElement;
+            const r = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };
+            const sel = doc.getSelection();
+            const selected = sel && !sel.isCollapsed ? sel.toString() : '';
+            let range: Range | null = null;
+            if (selected && sel?.rangeCount) range = sel.getRangeAt(0).cloneRange();
+            else {
+              const d = doc as Document & { caretPositionFromPoint?: (x: number, y: number) => { offsetNode: Node; offset: number } | null };
+              if (doc.caretRangeFromPoint) range = doc.caretRangeFromPoint(ev.clientX, ev.clientY);
+              else {
+                const cp = d.caretPositionFromPoint?.(ev.clientX, ev.clientY);
+                if (cp) { range = doc.createRange(); range.setStart(cp.offsetNode, cp.offset); range.collapse(true); }
+              }
+            }
+            setMenu({ x: r.left + ev.clientX, y: r.top + ev.clientY, range, selected });
+          });
           doc.addEventListener('click', (ev) => {
             if (live.current.footnoteOpen && !(ev.target as Element | null)?.closest?.('a[href]')) {
               actions.current.closeFootnote();
@@ -338,6 +392,7 @@ export default function ReaderPage() {
         setToc(view.book.toc ?? []);
         setRtl(view.book.dir === 'rtl');
         setFixedLayout(!!view.isFixedLayout);
+        setBookLang(view.language?.canonical || (Array.isArray(view.book.metadata?.language) ? String(view.book.metadata.language[0]) : (view.book.metadata?.language as string | undefined)) || undefined);
         setTicks(view.getSectionFractions());
 
         if (b.location) await view.init({ lastLocation: b.location });
@@ -445,7 +500,6 @@ export default function ReaderPage() {
         <button
           className="icon-btn"
           aria-label={currentBookmark ? 'Remove bookmark (B)' : 'Add bookmark (B)'}
-          title={currentBookmark ? 'Remove bookmark (B)' : 'Add bookmark (B)'}
           aria-pressed={!!currentBookmark}
           onClick={() => actions.current.toggleBookmark()}
         >
@@ -454,17 +508,24 @@ export default function ReaderPage() {
         <button
           className="icon-btn"
           aria-label="Blue light filter"
-          title="Blue light filter"
           aria-pressed={nightLight.settings.mode !== 'off'}
           onClick={nightLight.toggle}
         >
           <IconNightLight active={nightLight.settings.mode !== 'off'} />
         </button>
+        <button
+          className="icon-btn"
+          aria-label={tts.state.status === 'idle' ? 'Read aloud (R)' : 'Pause / resume reading (R)'}
+          aria-pressed={tts.state.status !== 'idle'}
+          aria-disabled={!!tts.unavailable}
+          onClick={() => actions.current.readAloud()}
+        >
+          <IconSpeaker />
+        </button>
         {fullscreenSupported && (
           <button
             className="icon-btn"
             aria-label={fullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-            title={fullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
             onClick={() => actions.current.toggleFullscreen()}
           >
             <IconFullscreen exit={fullscreen} />
@@ -473,7 +534,6 @@ export default function ReaderPage() {
         <button
           className="icon-btn"
           aria-label="Contents, bookmarks and search (T)"
-          title="Contents, bookmarks and search (T)"
           aria-expanded={tocOpen}
           onClick={() => actions.current.toggleToc()}
         >
@@ -573,6 +633,36 @@ export default function ReaderPage() {
         </button>
         <div ref={footnoteHostRef} className="footnote-host" />
       </div>
+
+      {tts.state.status !== 'idle' || tts.state.error ? (
+        <ReadAloudBar
+          state={tts.state}
+          hint={tts.hint}
+          rate={settings.ttsRate}
+          voices={tts.voices}
+          voiceURI={tts.voice?.voiceURI}
+          bookLang={bookLang}
+          lifted={chrome && state.kind === 'ready'}
+          onToggle={tts.toggle}
+          onPrev={tts.prev}
+          onNext={tts.next}
+          onStop={tts.stop}
+          onRate={tts.setRate}
+          onVoice={tts.setVoice}
+          onReveal={tts.reveal}
+        />
+      ) : null}
+      {menu && (
+        <ContextMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)} items={((): MenuItem[] => {
+          const items: MenuItem[] = [
+            { label: menu.selected ? 'Read aloud from selection' : 'Read from here', onSelect: () => tts.start(menu.range) },
+          ];
+          if (menu.selected) {
+            items.push({ label: 'Copy', onSelect: () => void navigator.clipboard?.writeText(menu.selected).catch(() => {}) });
+          }
+          return items;
+        })()} />
+      )}
 
       {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
       <NightLightOverlay />

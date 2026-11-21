@@ -33,3 +33,13 @@ export const IconPencil = () => (
 export const IconTrash = () => (
   <Svg><path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3" /></Svg>
 );
+
+export const IconSpeaker = () => (
+  <Svg><path d="M4 9.5v5h3.5L12 18.5v-13L7.5 9.5z" /><path d="M15.5 9a4 4 0 0 1 0 6M18 6.5a7.5 7.5 0 0 1 0 11" /></Svg>
+);
+export const IconPlay = () => <Svg fill="currentColor"><path d="M8 5v14l11-7z" /></Svg>;
+export const IconPause = () => <Svg fill="currentColor"><path d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z" /></Svg>;
+export const IconStop = () => <Svg fill="currentColor"><path d="M6 6h12v12H6z" /></Svg>;
+export const IconSkip = ({ back }: { back?: boolean }) => (
+  <Svg>{back ? <path d="M18 5v14M16 12 7 5.5v13z" /> : <path d="M6 5v14M8 12l9-6.5v13z" />}</Svg>
+);

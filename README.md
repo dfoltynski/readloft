@@ -71,6 +71,56 @@ web/              React + Vite UI; reader wraps <foliate-view>
 scripts/          setup helpers
 ```
 
+## Desktop app
+
+Download the installer for your OS (macOS `.dmg`, Windows `.exe`, Linux `.AppImage` / `.deb`) from the [Releases](../../releases) page. On first launch Readloft asks for your library folder (this can be an iCloud Drive folder); change it later from the app menu. The app runs the same server as the Docker setup, on port 8080 (or a free port if that is taken), so LAN and Tailscale access keep working.
+
+The builds are unsigned, so your OS will warn on first run:
+
+- macOS: right-click the app and choose Open, or run `xattr -dr com.apple.quarantine /Applications/Readloft.app`.
+- Windows SmartScreen: click More info, then Run anyway.
+
+To cut a release, push a version tag. GitHub Actions builds all platforms and attaches them to a draft release:
+
+```sh
+git tag v0.1.0 && git push origin v0.1.0
+```
+
+Locally: `npm run desktop:dev` runs the app against the local build, `npm run desktop:dist` packages for the current OS into `desktop/release/`.
+
+### Rebuilding the desktop app
+
+Run from the repo root. Output goes to `desktop/release/`.
+
+```sh
+# once, and after pulling: install deps and vendor foliate-js
+npm install
+npm run setup
+
+# build the web UI (always, before packaging)
+npm run build
+
+# macOS: .dmg for Intel + Apple Silicon
+npm run dist -w desktop -- --mac
+
+# macOS: just the .app for this Mac (fast, no .dmg), then install it
+npm run dist -w desktop -- --mac dir --arm64      # use --x64 on Intel Macs
+ditto desktop/release/mac-arm64/Readloft.app /Applications/Readloft.app
+
+# Linux: AppImage + .deb
+npm run dist -w desktop -- --linux
+
+# Windows: NSIS installer .exe
+npm run dist -w desktop -- --win
+
+# everything at once
+npm run dist -w desktop -- --mac --linux --win
+```
+
+Linux and Windows builds are most reliable on their own OS. Cross-building Windows from macOS may need Wine. For all three platforms, pushing a version tag (above) builds them on GitHub Actions.
+
+Quit any running Readloft (including `npm run desktop:dev`) before opening a freshly installed build. The app is single-instance, so a running copy takes over.
+
 ## Roadmap ideas
 
 - Users & auth, per-user progress

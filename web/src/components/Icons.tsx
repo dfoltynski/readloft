@@ -53,6 +53,11 @@ export const IconShelf = (p: IconProps) => (
     <path d="M3 7h18M3 17h18M6 7v10M10 7v10M14 7v10" />
   </Svg>
 );
+export const IconFolder = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M3 6.5a1.5 1.5 0 0 1 1.5-1.5H9l2 2.5h8.5A1.5 1.5 0 0 1 21 9v9a1.5 1.5 0 0 1-1.5 1.5h-15A1.5 1.5 0 0 1 3 18z" />
+  </Svg>
+);
 export const IconPlus = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 5v14M5 12h14" />

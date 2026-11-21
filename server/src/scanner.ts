@@ -87,6 +87,75 @@ export async function indexFile(abs: string, force = false): Promise<{ id: strin
   }
 }
 
+/** Stable id for the auto-shelf of a library-relative folder. */
+export function folderShelfId(folder: string): string {
+  return idFor(`folder:${folder}`);
+}
+
+/**
+ * Mirror the library's folder structure into read-only "folder" shelves.
+ * A book is on the shelf of its own folder and of every ancestor folder; the library root and
+ * `uploads/` are ignored. One transaction, bulk queries. Manual shelves/memberships are untouched.
+ */
+export function syncFolderShelves(): void {
+  const books = db.prepare('SELECT id, path FROM books').all() as unknown as { id: string; path: string }[];
+  const desired = new Map<string, Set<string>>(); // folder -> book ids
+  for (const b of books) {
+    const segs = b.path.split('/').slice(0, -1);
+    if (!segs.length || segs[0] === 'uploads') continue;
+    for (let i = 1; i <= segs.length; i++) {
+      const folder = segs.slice(0, i).join('/');
+      let set = desired.get(folder);
+      if (!set) desired.set(folder, (set = new Set()));
+      set.add(b.id);
+    }
+  }
+
+  const existing = new Map(
+    (db.prepare('SELECT id, folder, name FROM shelves WHERE folder IS NOT NULL').all() as unknown as
+      { id: string; folder: string; name: string }[]).map((r) => [r.folder, r]),
+  );
+  const current = new Map<string, Set<string>>(); // shelf id -> book ids
+  for (const r of db.prepare(
+    `SELECT sb.shelf_id, sb.book_id FROM shelf_books sb JOIN shelves s ON s.id = sb.shelf_id WHERE s.folder IS NOT NULL`,
+  ).all() as unknown as { shelf_id: string; book_id: string }[]) {
+    let set = current.get(r.shelf_id);
+    if (!set) current.set(r.shelf_id, (set = new Set()));
+    set.add(r.book_id);
+  }
+
+  const now = new Date().toISOString();
+  const insShelf = db.prepare('INSERT INTO shelves (id, name, created_at, folder) VALUES (?,?,?,?)');
+  const setName = db.prepare('UPDATE shelves SET name = ? WHERE id = ?');
+  const delShelf = db.prepare('DELETE FROM shelves WHERE id = ?');
+  const insMember = db.prepare('INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at) VALUES (?,?,?)');
+  const delMember = db.prepare('DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?');
+
+  db.exec('BEGIN');
+  try {
+    for (const [folder, row] of existing) {
+      if (!desired.has(folder)) delShelf.run(row.id); // cascades memberships
+    }
+    for (const [folder, ids] of desired) {
+      const name = folder.split('/').join(' / ');
+      let shelfId = existing.get(folder)?.id;
+      if (!shelfId) {
+        shelfId = folderShelfId(folder);
+        insShelf.run(shelfId, name, now, folder);
+      } else if (existing.get(folder)!.name !== name) {
+        setName.run(name, shelfId);
+      }
+      const have = current.get(shelfId) ?? new Set<string>();
+      for (const id of ids) if (!have.has(id)) insMember.run(shelfId, id, now);
+      for (const id of have) if (!ids.has(id)) delMember.run(shelfId, id);
+    }
+    db.exec('COMMIT');
+  } catch (e) {
+    db.exec('ROLLBACK');
+    throw e;
+  }
+}
+
 let inFlight: Promise<ScanResult> | null = null;
 
 export function scanLibrary(): Promise<ScanResult> {
@@ -112,6 +181,7 @@ export function scanLibrary(): Promise<ScanResult> {
           res.removed++;
         }
       }
+      syncFolderShelves();
     } catch (e) {
       console.error('[scan] failed:', e);
     }

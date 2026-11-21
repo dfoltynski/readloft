@@ -13,14 +13,16 @@
 //   PUT    /api/books/:id/progress body: ProgressUpdate -> Book
 //   POST   /api/upload      multipart, one or more "files" fields -> { added: Book[], skipped: string[] }
 //   POST   /api/scan                               -> ScanResult
-//   GET    /api/shelves                            -> Shelf[]
-//   POST   /api/shelves     body: { name }         -> Shelf
-//   PATCH  /api/shelves/:id body: { name }         -> Shelf
-//   DELETE /api/shelves/:id                        -> { ok: true }
-//   PUT    /api/shelves/:id/books/:bookId          -> { ok: true }
-//   DELETE /api/shelves/:id/books/:bookId          -> { ok: true }
-//   POST   /api/shelves/:id/books        body: { bookIds }  -> { added: number }
-//   POST   /api/shelves/:id/books/remove body: { bookIds }  -> { removed: number }
+//   GET    /api/shelves                            -> Shelf[] (manual shelves first, then folder shelves by path)
+//   POST   /api/shelves     body: { name }         -> Shelf (always source 'manual')
+//   PATCH  /api/shelves/:id body: { name }         -> Shelf   (409 for folder shelves)
+//   DELETE /api/shelves/:id                        -> { ok: true }   (409 for folder shelves)
+//   PUT    /api/shelves/:id/books/:bookId          -> { ok: true }   (409 for folder shelves)
+//   DELETE /api/shelves/:id/books/:bookId          -> { ok: true }   (409 for folder shelves)
+//   POST   /api/shelves/:id/books        body: { bookIds }  -> { added: number }   (409 for folder shelves)
+//   POST   /api/shelves/:id/books/remove body: { bookIds }  -> { removed: number } (409 for folder shelves)
+//   Folder shelves are created/synced automatically by every library scan from the directory
+//   structure (a book is on its folder's shelf and every ancestor folder's shelf) and are read-only.
 //   GET    /api/books/:id/bookmarks                -> Bookmark[] (sorted by progress)
 //   POST   /api/books/:id/bookmarks body: { location, label, progress } -> Bookmark
 //   PATCH  /api/bookmarks/:id body: { label }       -> Bookmark
@@ -82,6 +84,10 @@ export interface Shelf {
   name: string;
   bookCount: number;
   createdAt: string;
+  /** 'manual' = user-created; 'folder' = auto-synced from the library directory structure (read-only). */
+  source: 'manual' | 'folder';
+  /** Library-relative directory path, '/'-separated (e.g. "Fiction/Sci-fi"). null for manual shelves. */
+  folder: string | null;
 }
 
 export interface ScanResult {

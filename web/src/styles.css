@@ -395,3 +395,15 @@ kbd {
 }
 .selection-count { font-weight: 600; font-size: 13px; padding: 0 4px; }
 @media (max-width: 800px) { .selection-bar { left: 50%; bottom: 8px; width: calc(100vw - 16px); } .content.has-selection-bar { padding-bottom: 130px; } }
+/* ---------- Tooltip ---------- */
+.tooltip {
+  position: fixed; z-index: 1000; max-width: 280px; pointer-events: none;
+  padding: 5px 9px; border-radius: 6px; font-size: 12px; line-height: 1.35; font-weight: 500;
+  background: #26262a; color: #f5f5f7; box-shadow: var(--shadow-pop); border: 1px solid rgba(255, 255, 255, 0.14);
+  display: flex; align-items: center; gap: 8px; animation: tooltip-in 0.1s ease-out;
+}
+.tooltip kbd {
+  font: inherit; font-size: 11px; padding: 0 5px; border-radius: 4px; background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.2); min-width: 18px; text-align: center;
+}
+@keyframes tooltip-in { from { opacity: 0; } to { opacity: 1; } }

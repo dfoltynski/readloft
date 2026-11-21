@@ -7,6 +7,7 @@ RUN apk add --no-cache git
 COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY web/package.json web/
+COPY desktop/package.json desktop/
 RUN npm ci
 COPY shared shared
 COPY scripts scripts
@@ -26,6 +27,7 @@ ENV NODE_ENV=production \
 COPY package.json package-lock.json ./
 COPY server/package.json server/
 COPY web/package.json web/
+COPY desktop/package.json desktop/
 RUN npm ci --omit=dev -w server && npm cache clean --force
 COPY shared shared
 COPY server server

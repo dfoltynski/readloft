@@ -3,6 +3,7 @@ import LibraryPage from './pages/LibraryPage';
 import BookPage from './pages/BookPage';
 import ReaderPage from './pages/ReaderPage';
 import NightLightOverlay from './components/NightLightOverlay';
+import TooltipHost from './components/Tooltip';
 
 export default function App() {
   const { pathname } = useLocation();
@@ -17,6 +18,7 @@ export default function App() {
       </Routes>
       {/* The reader mounts its own overlay. */}
       {!pathname.startsWith('/read/') && <NightLightOverlay />}
+      <TooltipHost />
     </>
   );
 }

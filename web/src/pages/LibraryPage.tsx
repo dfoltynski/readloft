@@ -106,6 +106,7 @@ export default function LibraryPage() {
 
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const activeShelf = shelves.data?.find((s) => s.id === shelfId);
+  const manualShelves = (shelves.data ?? []).filter((s) => s.source === 'manual');
   const isAll = !shelfId && !status && !urlQuery;
   const continueReading = isAll ? (reading.data ?? []).slice(0, 10) : [];
 
@@ -191,7 +192,7 @@ export default function LibraryPage() {
     {
       label: 'Add to shelf',
       separatorBefore: true,
-      submenu: (shelves.data ?? []).map((s) => {
+      submenu: (shelves.data ?? []).filter((s) => s.source === 'manual').map((s) => {
         const member = book.shelfIds.includes(s.id);
         return {
           label: s.name,
@@ -421,7 +422,7 @@ export default function LibraryPage() {
                 <>
                   <h2>Nothing here yet</h2>
                   <p>No books on this {shelfId ? 'shelf' : 'filter'} yet.</p>
-                  {shelfId && <p>Add books from their context menu or details page.</p>}
+                  {shelfId && activeShelf?.source !== 'folder' && <p>Add books from their context menu or details page.</p>}
                 </>
               )}
             </div>
@@ -453,12 +454,12 @@ export default function LibraryPage() {
               aria-haspopup="menu"
               onClick={(e) => {
                 const r = e.currentTarget.getBoundingClientRect();
-                setShelfMenu({ x: r.left, y: r.top - 8 - 34 * ((shelves.data?.length ?? 0) + 1) });
+                setShelfMenu({ x: r.left, y: r.top - 8 - 34 * (manualShelves.length + 1) });
               }}
             >
               Add to shelf
             </button>
-            {shelfId && <button className="btn" onClick={removeSelectedFromShelf}>Remove from shelf</button>}
+            {shelfId && activeShelf?.source !== 'folder' && <button className="btn" onClick={removeSelectedFromShelf}>Remove from shelf</button>}
             <button className="btn btn-quiet" onClick={selectAll}>Select all</button>
             <button className="icon-btn" aria-label="Clear selection" onClick={clearSelection}>
               <IconClose size={16} />
@@ -473,8 +474,8 @@ export default function LibraryPage() {
           y={shelfMenu.y}
           onClose={() => setShelfMenu(null)}
           items={[
-            ...(shelves.data ?? []).map((sh) => ({ label: sh.name, onSelect: () => addSelectedToShelf(sh.id, sh.name) })),
-            { label: 'New shelf…', separatorBefore: (shelves.data ?? []).length > 0, onSelect: addSelectedToNewShelf },
+            ...manualShelves.map((sh) => ({ label: sh.name, onSelect: () => addSelectedToShelf(sh.id, sh.name) })),
+            { label: 'New shelf…', separatorBefore: manualShelves.length > 0, onSelect: addSelectedToNewShelf },
           ]}
         />
       )}

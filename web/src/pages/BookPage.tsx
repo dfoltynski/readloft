@@ -4,7 +4,7 @@ import type { Book, BookPatch, BookStatus } from '@shared/types';
 import { api, fileUrl } from '../api';
 import Cover from '../components/Cover';
 import DeleteBookDialog from '../components/DeleteBookDialog';
-import { IconBack, IconDownload } from '../components/Icons';
+import { IconBack, IconDownload, IconFolder } from '../components/Icons';
 import { useToast } from '../components/Toast';
 import { authorLine, formatBytes, formatDate, formatPercent, formatRelative, seriesLine, splitParagraphs } from '../lib/format';
 import { useAsync } from '../lib/hooks';
@@ -148,8 +148,10 @@ export default function BookPage() {
 
           <div className="detail-section">
             <div className="field-label">Shelves</div>
-            {(shelves.data ?? []).length === 0 && <p className="muted">No shelves yet. Create one from the library sidebar.</p>}
-            {(shelves.data ?? []).map((s) => {
+            {(shelves.data ?? []).filter((s) => s.source === 'manual').length === 0 && (
+              <p className="muted">No shelves yet. Create one from the library sidebar.</p>
+            )}
+            {(shelves.data ?? []).filter((s) => s.source === 'manual').map((s) => {
               const member = b.shelfIds.includes(s.id);
               return (
                 <label key={s.id} className="check">
@@ -169,6 +171,11 @@ export default function BookPage() {
                 </label>
               );
             })}
+            {(shelves.data ?? []).filter((s) => s.source === 'folder' && b.shelfIds.includes(s.id)).map((s) => (
+              <Link key={s.id} to={`/shelf/${s.id}`} className="check muted" title={s.folder ?? s.name}>
+                <IconFolder size={14} /> {s.name}
+              </Link>
+            ))}
           </div>
         </div>
       </div>
