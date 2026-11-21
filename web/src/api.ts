@@ -1,5 +1,5 @@
 import type {
-  Book, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
+  Book, BookAvailability, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
 } from '@shared/types';
 
 export type BookSort = 'added' | 'title' | 'author' | 'recent';
@@ -43,6 +43,8 @@ export const api = {
     for (const [k, v] of Object.entries(query)) if (v) p.set(k, v);
     return request<Book[]>(`/api/books?${p}`);
   },
+  getAvailability: (id: string) => request<BookAvailability>(`/api/books/${id}/availability`),
+  startDownload: (id: string) => request<BookAvailability>(`/api/books/${id}/download`, { method: 'POST' }),
   getBook: (id: string) => request<Book>(`/api/books/${id}`),
   patchBook: (id: string, patch: BookPatch) =>
     request<Book>(`/api/books/${id}`, json('PATCH', patch)),

@@ -14,6 +14,7 @@ export default function BookPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const book = useAsync(() => api.getBook(id), [id]);
+  const avail = useAsync(() => api.getAvailability(id).catch(() => null), [id]);
   const shelves = useAsync(() => api.listShelves(), []);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -105,6 +106,7 @@ export default function BookPage() {
             </div>
           )}
           <p className="muted read-info">{readInfo(b)}</p>
+          {avail.data?.offloaded && <p className="muted read-info">Stored in {avail.data.provider ?? 'cloud storage'} — downloads when you open it</p>}
 
           {editing ? (
             <EditForm

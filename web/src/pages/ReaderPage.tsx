@@ -17,14 +17,14 @@ import ReaderSettingsPanel from '../components/ReaderSettingsPanel';
 import TocPanel, { type PanelTab } from '../components/TocPanel';
 import { useNightLight } from '../lib/nightLight';
 import '../reader.css';
-import { formatPercent } from '../lib/format';
+import { formatBytes, formatPercent } from '../lib/format';
 import { useDismiss } from '../lib/hooks';
 import {
   buildBookCss, loadSettings, paletteFor, resolveTheme, saveSettings, type ReaderSettings,
 } from '../lib/readerSettings';
 import type { FoliateRelocateDetail, FoliateTocItem, FoliateView } from '../foliate';
 
-type LoadState = { kind: 'loading' } | { kind: 'ready' } | { kind: 'error'; message: string };
+type LoadState = { kind: 'loading' } | { kind: 'cloud'; startedAt: number; percent: number | null; provider: string | null; size: number } | { kind: 'ready' } | { kind: 'error'; message: string };
 
 interface Position {
   fraction: number;
@@ -59,6 +59,55 @@ const fullscreenSupported = typeof document !== 'undefined' && !!document.fullsc
 function isEditable(t: EventTarget | null): boolean {
   const el = t as HTMLElement | null;
   return !!el && ['INPUT', 'SELECT', 'TEXTAREA'].includes(el.tagName);
+}
+
+const CLOUD_TIPS = [
+  'Tip: In Finder, right-click your books folder and choose “Keep Downloaded” to keep every book available offline.',
+  'Large PDFs can take a minute on a slow connection.',
+  'You can go back to the library — the download keeps going in the background.',
+  'Make sure you’re online and signed in to iCloud in System Settings.',
+];
+
+function CloudDownload({ title, info, onBack }: {
+  title: string;
+  info: { startedAt: number; percent: number | null; provider: string | null; size: number };
+  onBack: () => void;
+}) {
+  const [now, setNow] = useState(Date.now());
+  useEffect(() => {
+    const t = setInterval(() => setNow(Date.now()), 1000);
+    return () => clearInterval(t);
+  }, []);
+  const elapsed = Math.max(0, Math.floor((now - info.startedAt) / 1000));
+  const tip = CLOUD_TIPS[Math.floor(elapsed / 6) % CLOUD_TIPS.length];
+  const where = info.provider ?? 'cloud storage';
+  const pct = info.percent;
+  return (
+    <div className="reader-overlay cloud-dl" role="status">
+      <h2>Downloading from {where}</h2>
+      <p className="cloud-dl-title">{title}</p>
+      <p className="muted">{formatBytes(info.size)}</p>
+      <div
+        className={`cloud-dl-bar${pct == null ? ' indeterminate' : ''}`}
+        role="progressbar"
+        aria-label="Download progress"
+        aria-valuemin={0}
+        aria-valuemax={100}
+        aria-valuenow={pct == null ? undefined : Math.round(pct)}
+      >
+        <div style={pct == null ? undefined : { width: `${pct}%` }} />
+      </div>
+      <p className="muted cloud-dl-meta">
+        {pct != null && <strong>{Math.round(pct)}%</strong>}
+        {pct != null && ' · '}
+        {Math.floor(elapsed / 60)}:{String(elapsed % 60).padStart(2, '0')}
+      </p>
+      <p className="muted">This book is stored in {where} and isn’t on this Mac yet. It will open automatically when the download finishes.</p>
+      <p className="muted cloud-dl-tip" key={tip}>{tip}</p>
+      {elapsed >= 90 && <p className="muted cloud-dl-warn">This is taking longer than usual. Check your internet connection and iCloud status.</p>}
+      <button className="btn" onClick={onBack}>Back</button>
+    </div>
+  );
 }
 
 export default function ReaderPage() {
@@ -307,6 +356,23 @@ export default function ReaderPage() {
         if (cancelled) return;
         setBook(b);
 
+        // Offloaded cloud file: trigger the download and wait for it, instead of hanging on fetch.
+        let av = await api.getAvailability(id).catch(() => null);
+        if (av?.offloaded) {
+          const startedAt = Date.now();
+          av = await api.startDownload(id);
+          while (av.offloaded) {
+            if (cancelled) return;
+            setState({ kind: 'cloud', startedAt, percent: av.percent, provider: av.provider, size: av.size });
+            await new Promise((r) => setTimeout(r, 1000));
+            if (cancelled) return;
+            // POST is idempotent server-side and re-kicks a stalled download; a failed poll just retries.
+            av = await api.startDownload(id).catch(() => av!);
+          }
+          setState({ kind: 'loading' });
+        }
+        if (cancelled) return;
+
         const res = await fetch(fileUrl(id));
         if (!res.ok) throw new Error(`Could not download the book (${res.status})`);
         const blob = await res.blob();
@@ -483,6 +549,9 @@ export default function ReaderPage() {
           <div className="spinner" aria-hidden="true" />
           <span>Opening book…</span>
         </div>
+      )}
+      {state.kind === 'cloud' && (
+        <CloudDownload title={book?.title ?? ''} info={state} onBack={() => navigate(`/book/${id}`)} />
       )}
       {state.kind === 'error' && (
         <div className="reader-overlay" role="alert">

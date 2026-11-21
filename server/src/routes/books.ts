@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import type { Book, BookPatch, BookStatus, ProgressUpdate } from '../../../shared/types.ts';
+import type { Book, BookAvailability, BookPatch, BookStatus, ProgressUpdate } from '../../../shared/types.ts';
 import { db, getBook, getBookRow, rowToBook, shelfIdsFor, type BookRow } from '../db.ts';
 import { LIBRARY_DIR, UPLOADS_DIR, safeLibraryPath } from '../config.ts';
 import { findCover, removeCover, saveCover } from '../covers.ts';
 import { detectImageExt } from '../metadata/util.ts';
+import { clearDownload, cloudProvider, icloudPercent, isDownloading, isOffloaded, startDownload } from '../cloud.ts';
 import { formatOf, indexFile, scanLibrary, syncFolderShelves } from '../scanner.ts';
 import { applyPending, markDirty } from '../sync.ts';
 
@@ -157,6 +158,23 @@ books.delete('/books/:id', async (c) => {
   syncFolderShelves();
   return c.json({ ok: true });
 });
+
+async function availabilityFor(id: string, start: boolean): Promise<BookAvailability> {
+  const row = getBookRow(id);
+  if (!row) throw new HttpError(404, 'book not found');
+  const abs = safeLibraryPath(row.path);
+  if (!abs) throw new HttpError(400, 'invalid path');
+  const provider = cloudProvider(abs);
+  const offloaded = await isOffloaded(abs);
+  if (!offloaded) clearDownload(abs);
+  else if (start) startDownload(abs);
+  const downloading = offloaded && isDownloading(abs);
+  const percent = offloaded && provider === 'iCloud Drive' ? await icloudPercent(abs) : null;
+  return { offloaded, downloading, percent, provider, size: row.file_size };
+}
+
+books.get('/books/:id/availability', async (c) => c.json(await availabilityFor(c.req.param('id'), false)));
+books.post('/books/:id/download', async (c) => c.json(await availabilityFor(c.req.param('id'), true)));
 
 books.get('/books/:id/file', async (c) => {
   const row = getBookRow(c.req.param('id'));

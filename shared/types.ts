@@ -124,3 +124,16 @@ export interface SyncStatus {
 }
 
 export interface ShelfBooksBody { bookIds: string[] }
+
+/**
+ * Whether a book's file is local or offloaded to cloud storage (iCloud Drive etc.).
+ * GET  /api/books/:id/availability -> BookAvailability (404 unknown book)
+ * POST /api/books/:id/download     -> BookAvailability; starts the cloud download if offloaded
+ */
+export interface BookAvailability {
+  offloaded: boolean;        // file is a cloud placeholder, not on disk yet
+  downloading: boolean;      // a download we started is in flight and still not finished
+  percent: number | null;    // 0..100 when known (iCloud only), else null
+  provider: string | null;   // e.g. 'iCloud Drive', 'Dropbox'; null for plain local paths
+  size: number;              // bytes (from the index)
+}
