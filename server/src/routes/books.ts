@@ -127,7 +127,7 @@ books.patch('/books/:id', async (c) => {
     if (!STATUSES.includes(s)) throw new HttpError(400, 'invalid status');
     set('status', s);
     if (s === 'finished') set('progress', 1);
-    else if (s === 'unread') set('progress', 0);
+    else if (s === 'unread') { set('progress', 0); set('location', null); set('last_opened_at', null); }
   }
   if (metaChanged) set('metadata_locked', 1);
   if (sets.length) {

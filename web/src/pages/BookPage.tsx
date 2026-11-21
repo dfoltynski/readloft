@@ -83,12 +83,16 @@ export default function BookPage() {
             <a className="btn" href={fileUrl(b.id)} download={`${b.title}.${b.format}`}>
               <IconDownload size={16} /> Download
             </a>
-            <button
-              className="btn"
-              onClick={() => guard(() => api.patchBook(b.id, { status: b.status === 'finished' ? 'unread' : 'finished' }))}
-            >
-              {b.status === 'finished' ? 'Mark unread' : 'Mark as finished'}
-            </button>
+            {b.status !== 'unread' && (
+              <button className="btn" onClick={() => guard(() => api.patchBook(b.id, { status: 'unread' }))}>
+                Mark unread
+              </button>
+            )}
+            {b.status !== 'finished' && (
+              <button className="btn" onClick={() => guard(() => api.patchBook(b.id, { status: 'finished' }))}>
+                Mark as finished
+              </button>
+            )}
             <button className="btn" onClick={() => setEditing(!editing)} aria-expanded={editing}>
               Edit metadata
             </button>

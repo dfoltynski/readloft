@@ -202,9 +202,14 @@ export default function LibraryPage() {
         };
       }),
     },
-    book.status === 'finished'
-      ? { label: 'Mark unread', onSelect: () => attempt(() => api.patchBook(book.id, { status: 'unread' })) }
-      : { label: 'Mark finished', onSelect: () => attempt(() => api.patchBook(book.id, { status: 'finished' })) },
+    ...(book.status === 'finished'
+      ? [{ label: 'Mark unread', onSelect: () => attempt(() => api.patchBook(book.id, { status: 'unread' })) }]
+      : book.status === 'reading'
+        ? [
+            { label: 'Remove from Currently Reading', onSelect: () => attempt(() => api.patchBook(book.id, { status: 'unread' })) },
+            { label: 'Mark finished', onSelect: () => attempt(() => api.patchBook(book.id, { status: 'finished' })) },
+          ]
+        : [{ label: 'Mark finished', onSelect: () => attempt(() => api.patchBook(book.id, { status: 'finished' })) }]),
     { label: 'Delete…', danger: true, separatorBefore: true, onSelect: () => setToDelete(book) },
   ];
 
@@ -388,14 +393,24 @@ export default function LibraryPage() {
               <h2 id="continue-h" className="section-title">Continue reading</h2>
               <div className="continue-row">
                 {continueReading.map((b) => (
-                  <Link key={b.id} to={`/read/${b.id}`} className="continue-card" aria-label={`Continue reading ${b.title}`}>
-                    <Cover book={b} />
-                    <div className="cover-progress" aria-hidden="true">
-                      <div style={{ width: formatPercent(b.progress) }} />
-                    </div>
-                    <div className="book-title">{b.title}</div>
-                    <div className="book-author">{authorLine(b)}</div>
-                  </Link>
+                  <div key={b.id} className="continue-wrap">
+                    <Link to={`/read/${b.id}`} className="continue-card" aria-label={`Continue reading ${b.title}`}>
+                      <Cover book={b} />
+                      <div className="cover-progress" aria-hidden="true">
+                        <div style={{ width: formatPercent(b.progress) }} />
+                      </div>
+                      <div className="book-title">{b.title}</div>
+                      <div className="book-author">{authorLine(b)}</div>
+                    </Link>
+                    <button
+                      type="button"
+                      className="continue-remove"
+                      aria-label={`Remove ${b.title} from Currently Reading`}
+                      onClick={() => attempt(() => api.patchBook(b.id, { status: 'unread' }))}
+                    >
+                      <IconClose size={14} />
+                    </button>
+                  </div>
                 ))}
               </div>
               <h2 className="section-title">Library</h2>

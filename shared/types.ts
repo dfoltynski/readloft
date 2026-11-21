@@ -5,7 +5,7 @@
 //            q: search title/author/series; shelf: shelf id; status: BookStatus
 //            sort: "added" (default, newest first) | "title" | "author" | "recent" (last opened)
 //   GET    /api/books/:id                          -> Book
-//   PATCH  /api/books/:id   body: BookPatch        -> Book
+//   PATCH  /api/books/:id   body: BookPatch        -> Book  (status 'unread' also resets progress/location/lastOpenedAt)
 //   DELETE /api/books/:id?file=1                   -> { ok: true }  (file=1 also deletes file on disk)
 //   GET    /api/books/:id/file                     -> raw file bytes (correct Content-Type, supports Range)
 //   GET    /api/books/:id/cover                    -> image bytes, 404 if none
