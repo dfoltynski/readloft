@@ -7,6 +7,7 @@ import { LIBRARY_DIR } from './config.ts';
 import { db, getBookRow } from './db.ts';
 import { extractMetadata } from './metadata/index.ts';
 import { saveCover, removeCover } from './covers.ts';
+import { parkBook, syncAfterScan } from './sync.ts';
 
 export function formatOf(fileName: string): BookFormat | null {
   const lower = fileName.toLowerCase();
@@ -176,12 +177,14 @@ export function scanLibrary(): Promise<ScanResult> {
       const rows = db.prepare('SELECT id FROM books').all() as unknown as { id: string }[];
       for (const { id } of rows) {
         if (!seen.has(id)) {
+          parkBook(id); // keep progress/bookmarks/shelf entries so they return if the file comes back
           db.prepare('DELETE FROM books WHERE id = ?').run(id);
           removeCover(id);
           res.removed++;
         }
       }
       syncFolderShelves();
+      syncAfterScan();
     } catch (e) {
       console.error('[scan] failed:', e);
     }

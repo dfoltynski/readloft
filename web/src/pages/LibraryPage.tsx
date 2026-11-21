@@ -94,6 +94,12 @@ export default function LibraryPage() {
     reading.reload();
   }, [books.reload, shelves.reload, stats.reload, reading.reload]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Pick up changes merged from other devices while the page is visible.
+  useEffect(() => {
+    const t = setInterval(() => { if (document.visibilityState === 'visible') reloadAll(); }, 30_000);
+    return () => clearInterval(t);
+  }, [reloadAll]);
+
   // PDFs get their cover rendered in the browser (server can't render PDFs).
   useEffect(() => {
     if (!books.data) return;

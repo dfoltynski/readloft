@@ -10,6 +10,7 @@ import { LIBRARY_DIR, UPLOADS_DIR, safeLibraryPath } from '../config.ts';
 import { findCover, removeCover, saveCover } from '../covers.ts';
 import { detectImageExt } from '../metadata/util.ts';
 import { formatOf, indexFile, scanLibrary, syncFolderShelves } from '../scanner.ts';
+import { applyPending, markDirty } from '../sync.ts';
 
 export class HttpError extends Error {
   status: number;
@@ -101,6 +102,7 @@ books.patch('/books/:id', async (c) => {
   const sets: string[] = [];
   const params: (string | number | null)[] = [];
   let metaChanged = false;
+  const now = new Date().toISOString();
   const set = (col: string, v: string | number | null) => { sets.push(`${col} = ?`); params.push(v); };
   if ('title' in body) {
     if (typeof body.title !== 'string' || !body.title.trim()) throw new HttpError(400, 'title must be a non-empty string');
@@ -126,13 +128,15 @@ books.patch('/books/:id', async (c) => {
     const s = body.status as BookStatus;
     if (!STATUSES.includes(s)) throw new HttpError(400, 'invalid status');
     set('status', s);
+    set('state_updated_at', now);
     if (s === 'finished') set('progress', 1);
     else if (s === 'unread') { set('progress', 0); set('location', null); set('last_opened_at', null); }
   }
-  if (metaChanged) set('metadata_locked', 1);
+  if (metaChanged) { set('metadata_locked', 1); set('meta_updated_at', now); }
   if (sets.length) {
-    set('updated_at', new Date().toISOString());
+    set('updated_at', now);
     db.prepare(`UPDATE books SET ${sets.join(', ')} WHERE id = ?`).run(...params, id);
+    markDirty();
   }
   return c.json(getBook(id));
 });
@@ -169,6 +173,8 @@ books.get('/books/:id/file', async (c) => {
     'Content-Disposition': `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     'Accept-Ranges': 'bytes',
     'Last-Modified': st.mtime.toUTCString(),
+    // Books are already local (or in iCloud); don't keep a second copy in the browser/Electron disk cache.
+    'Cache-Control': 'no-store',
   };
   let start = 0;
   let end = size - 1;
@@ -235,8 +241,10 @@ books.put('/books/:id/progress', async (c) => {
   let status = row.status;
   if (progress >= 0.99) status = 'finished';
   else if (status === 'unread' && progress > 0) status = 'reading';
-  db.prepare('UPDATE books SET progress = ?, location = ?, status = ?, last_opened_at = ? WHERE id = ?')
-    .run(progress, body.location ?? null, status, new Date().toISOString(), id);
+  const now = new Date().toISOString();
+  db.prepare('UPDATE books SET progress = ?, location = ?, status = ?, last_opened_at = ?, state_updated_at = ? WHERE id = ?')
+    .run(progress, body.location ?? null, status, now, now, id);
+  markDirty();
   return c.json(getBook(id));
 });
 
@@ -266,6 +274,7 @@ books.post('/upload', bodyLimit({
       skipped.push(f.name);
     }
   }
+  applyPending();
   return c.json({ added, skipped });
 });
 

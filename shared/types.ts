@@ -28,6 +28,7 @@
 //   PATCH  /api/bookmarks/:id body: { label }       -> Bookmark
 //   DELETE /api/bookmarks/:id                      -> { ok: true }
 //   GET    /api/stats                              -> LibraryStats
+//   GET    /api/sync                               -> SyncStatus (cross-device sync via per-device JSON files in <library>/.readloft/sync)
 // Errors: non-2xx with { error: string }.
 
 export const SUPPORTED_EXTENSIONS = [
@@ -103,6 +104,23 @@ export interface LibraryStats {
   finished: number;
   unread: number;
   byFormat: Record<string, number>;
+}
+
+export interface SyncDevice {
+  id: string;
+  name: string;
+  writtenAt: string;       // ISO, when that device last wrote its state file
+}
+
+export interface SyncStatus {
+  enabled: boolean;        // false when SYNC=0
+  dir: string | null;      // directory holding the per-device state files
+  deviceId: string | null;
+  deviceName: string | null;
+  lastMergeAt: string | null; // ISO, last completed check/merge of other devices' files
+  lastWriteAt: string | null; // ISO, last time this device wrote its own file
+  devices: SyncDevice[];   // other devices seen
+  error?: string;
 }
 
 export interface ShelfBooksBody { bookIds: string[] }

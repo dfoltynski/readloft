@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto';
 import type { Shelf, ShelfBooksBody } from '../../../shared/types.ts';
 import { db } from '../db.ts';
 import { HttpError } from './books.ts';
+import { addTombstone, clearTombstone, markDirty, shelfBookKey, tombstoneShelf } from '../sync.ts';
 
 interface ShelfRow { id: string; name: string; created_at: string; folder: string | null; book_count: number }
 
@@ -44,7 +45,9 @@ shelves.get('/shelves', (c) => {
 shelves.post('/shelves', async (c) => {
   const name = await readName(c);
   const id = randomUUID();
-  db.prepare('INSERT INTO shelves (id, name, created_at) VALUES (?,?,?)').run(id, name, new Date().toISOString());
+  const now = new Date().toISOString();
+  db.prepare('INSERT INTO shelves (id, name, created_at, updated_at) VALUES (?,?,?,?)').run(id, name, now, now);
+  markDirty();
   return c.json(getShelf(id), 201);
 });
 
@@ -52,13 +55,15 @@ shelves.patch('/shelves/:id', async (c) => {
   const id = c.req.param('id');
   assertManual(id);
   const name = await readName(c);
-  db.prepare('UPDATE shelves SET name = ? WHERE id = ?').run(name, id);
+  db.prepare('UPDATE shelves SET name = ?, updated_at = ? WHERE id = ?').run(name, new Date().toISOString(), id);
+  markDirty();
   return c.json(getShelf(id));
 });
 
 shelves.delete('/shelves/:id', (c) => {
   const id = c.req.param('id');
   assertManual(id);
+  tombstoneShelf(id);
   db.prepare('DELETE FROM shelves WHERE id = ?').run(id);
   return c.json({ ok: true });
 });
@@ -67,15 +72,19 @@ shelves.put('/shelves/:id/books/:bookId', (c) => {
   const { id, bookId } = c.req.param();
   assertManual(id);
   if (!db.prepare('SELECT 1 FROM books WHERE id = ?').get(bookId)) throw new HttpError(404, 'book not found');
-  db.prepare('INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at) VALUES (?,?,?)')
-    .run(id, bookId, new Date().toISOString());
+  const now = new Date().toISOString();
+  const r = db.prepare('INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at, updated_at) VALUES (?,?,?,?)')
+    .run(id, bookId, now, now);
+  if (r.changes) { const k = shelfBookKey(id, bookId); if (k) clearTombstone('shelfBook', k); }
   return c.json({ ok: true });
 });
 
 shelves.delete('/shelves/:id/books/:bookId', (c) => {
   const { id, bookId } = c.req.param();
   assertManual(id);
-  db.prepare('DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?').run(id, bookId);
+  const k = shelfBookKey(id, bookId);
+  const r = db.prepare('DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?').run(id, bookId);
+  if (r.changes && k) addTombstone('shelfBook', k);
   return c.json({ ok: true });
 });
 
@@ -89,7 +98,7 @@ async function readBookIds(c: { req: { json: () => Promise<unknown> } }): Promis
   return ids;
 }
 
-function bulk(shelfId: string, ids: string[], sql: string, params: (bookId: string) => (string | number)[]): number {
+function bulk(ids: string[], sql: string, params: (bookId: string) => (string | number)[], onChange: (bookId: string) => void): number {
   let changed = 0;
   const stmt = db.prepare(sql);
   const exists = db.prepare('SELECT 1 FROM books WHERE id = ?');
@@ -97,7 +106,9 @@ function bulk(shelfId: string, ids: string[], sql: string, params: (bookId: stri
   try {
     for (const bookId of new Set(ids)) {
       if (!exists.get(bookId)) continue;
-      changed += Number(stmt.run(...params(bookId)).changes);
+      const n = Number(stmt.run(...params(bookId)).changes);
+      if (n) onChange(bookId);
+      changed += n;
     }
     db.exec('COMMIT');
   } catch (e) {
@@ -112,7 +123,8 @@ shelves.post('/shelves/:id/books', async (c) => {
   assertManual(id);
   const ids = await readBookIds(c);
   const now = new Date().toISOString();
-  const added = bulk(id, ids, 'INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at) VALUES (?,?,?)', (b) => [id, b, now]);
+  const added = bulk(ids, 'INSERT OR IGNORE INTO shelf_books (shelf_id, book_id, added_at, updated_at) VALUES (?,?,?,?)', (b) => [id, b, now, now],
+    (b) => { const k = shelfBookKey(id, b); if (k) clearTombstone('shelfBook', k); });
   return c.json({ added });
 });
 
@@ -120,6 +132,7 @@ shelves.post('/shelves/:id/books/remove', async (c) => {
   const id = c.req.param('id');
   assertManual(id);
   const ids = await readBookIds(c);
-  const removed = bulk(id, ids, 'DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?', (b) => [id, b]);
+  const removed = bulk(ids, 'DELETE FROM shelf_books WHERE shelf_id = ? AND book_id = ?', (b) => [id, b],
+    (b) => { const k = shelfBookKey(id, b); if (k) addTombstone('shelfBook', k); });
   return c.json({ removed });
 });

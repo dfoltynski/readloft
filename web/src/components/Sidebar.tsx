@@ -1,14 +1,15 @@
-import { useEffect, useRef, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import type { BookStatus, LibraryStats, Shelf } from '@shared/types';
+import type { BookStatus, LibraryStats, Shelf, SyncStatus } from '@shared/types';
 import { api } from '../api';
 import { BOOKS_DRAG_TYPE } from './BookCard';
-import { useTheme } from '../lib/hooks';
+import { useDismiss, useTheme } from '../lib/hooks';
+import { formatRelative } from '../lib/format';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
 import {
   IconBooks, IconCheck, IconCircle, IconFolder, IconLogo, IconMoon, IconPlus, IconReading, IconRefresh,
-  IconShelf, IconSun,
+  IconShelf, IconSun, IconSync,
 } from './Icons';
 
 interface Props {
@@ -44,6 +45,22 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
   const manualShelves = shelves.filter((s) => s.source === 'manual');
   const folderShelves = shelves.filter((s) => s.source === 'folder');
   const newInput = useRef<HTMLInputElement>(null);
+  const [sync, setSync] = useState<SyncStatus | null>(null);
+  const [syncOpen, setSyncOpen] = useState(false);
+  const syncPop = useRef<HTMLDivElement>(null);
+  const closeSync = useCallback(() => setSyncOpen(false), []);
+  useDismiss(syncPop, syncOpen, closeSync);
+  useEffect(() => {
+    let alive = true;
+    const load = () => api.syncStatus().then((s) => alive && setSync(s), () => {});
+    load();
+    const t = setInterval(load, 20_000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+  const syncTip = !sync ? 'Sync status'
+    : !sync.enabled ? 'Sync off'
+    : sync.error ? `Sync error: ${sync.error}`
+    : `Synced with ${sync.devices.length} other device${sync.devices.length === 1 ? '' : 's'}${sync.lastMergeAt ? ` · last ${formatRelative(sync.lastMergeAt)}` : ''}`;
 
   // Close the mobile drawer after navigating.
   useEffect(onClose, [location.pathname, location.search]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -247,6 +264,34 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
           <button className="btn btn-quiet" onClick={rescan} disabled={scanning}>
             <IconRefresh /> {scanning ? 'Scanning…' : 'Rescan library'}
           </button>
+          <div className="sync-wrap" ref={syncPop}>
+            <button
+              className={`icon-btn${sync?.error ? ' sync-error' : ''}`}
+              onClick={() => setSyncOpen((o) => !o)}
+              aria-label={syncTip}
+              data-tip={syncTip}
+              aria-expanded={syncOpen}
+            >
+              <IconSync />
+            </button>
+            {syncOpen && (
+              <div className="menu sync-pop" role="dialog" aria-label="Sync devices">
+                {!sync?.enabled ? (
+                  <div className="menu-empty">Sync is off (SYNC=0)</div>
+                ) : (
+                  <>
+                    <div className="sync-line"><strong>This device</strong> · {sync.deviceName}</div>
+                    {sync.error && <div className="sync-line sync-err">{sync.error}</div>}
+                    {sync.devices.length === 0 ? (
+                      <div className="menu-empty">No other devices seen yet</div>
+                    ) : sync.devices.map((d) => (
+                      <div className="sync-line" key={d.id}>{d.name} <span className="muted">· {formatRelative(d.writtenAt)}</span></div>
+                    ))}
+                  </>
+                )}
+              </div>
+            )}
+          </div>
           <button
             className="icon-btn"
             onClick={toggleTheme}

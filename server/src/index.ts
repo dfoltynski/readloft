@@ -10,9 +10,11 @@ import { books, HttpError } from './routes/books.ts';
 import { shelves } from './routes/shelves.ts';
 import { bookmarks } from './routes/bookmarks.ts';
 import { library } from './routes/library.ts';
+import { startSync } from './sync.ts';
 
 ensureDirs();
 migrate();
+startSync();
 
 const app = new Hono();
 

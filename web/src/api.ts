@@ -1,5 +1,5 @@
 import type {
-  Book, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf,
+  Book, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
 } from '@shared/types';
 
 export type BookSort = 'added' | 'title' | 'author' | 'recent';
@@ -80,6 +80,7 @@ export const api = {
     request<Bookmark>(`/api/bookmarks/${id}`, json('PATCH', { label })),
   deleteBookmark: (id: string) => request<{ ok: true }>(`/api/bookmarks/${id}`, { method: 'DELETE' }),
   stats: () => request<LibraryStats>('/api/stats'),
+  syncStatus: () => request<SyncStatus>('/api/sync'),
 };
 
 /** Upload files with progress (XMLHttpRequest, since fetch has no upload progress). */

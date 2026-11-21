@@ -10,6 +10,8 @@ export const DATA_DIR = path.resolve(process.env.DATA_DIR || './data');
 export const COVERS_DIR = path.join(DATA_DIR, 'covers');
 export const UPLOADS_DIR = path.join(LIBRARY_DIR, 'uploads');
 export const WEB_DIST = path.resolve(process.env.WEB_DIST || path.join(serverDir, '../web/dist'));
+export const SYNC_ENABLED = process.env.SYNC !== '0';
+export const SYNC_DIR = process.env.SYNC_DIR ? path.resolve(process.env.SYNC_DIR) : path.join(LIBRARY_DIR, '.readloft', 'sync');
 const si = process.env.SCAN_INTERVAL_MINUTES;
 export const SCAN_INTERVAL_MINUTES = si === undefined || si === '' ? 30 : Number(si) || 0;
 

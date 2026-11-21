@@ -1,8 +1,11 @@
 import { Hono } from 'hono';
 import type { LibraryStats } from '../../../shared/types.ts';
 import { db } from '../db.ts';
+import { getSyncStatus } from '../sync.ts';
 
 export const library = new Hono();
+
+library.get('/sync', (c) => c.json(getSyncStatus()));
 
 library.get('/stats', (c) => {
   const stats: LibraryStats = { total: 0, reading: 0, finished: 0, unread: 0, byFormat: {} };

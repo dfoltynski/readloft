@@ -92,6 +92,11 @@ export const IconRefresh = (p: IconProps) => (
     <path d="M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5" />
   </Svg>
 );
+export const IconSync = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M7 18a4 4 0 0 1-.5-7.97A5.5 5.5 0 0 1 17 8.5a3.75 3.75 0 0 1 .5 7.5H15M12 11v8m0 0-2.5-2.5M12 19l2.5-2.5" />
+  </Svg>
+);
 export const IconMoon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M20 14.5A8 8 0 0 1 9.5 4 8 8 0 1 0 20 14.5z" />

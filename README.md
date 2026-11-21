@@ -121,6 +121,16 @@ Linux and Windows builds are most reliable on their own OS. Cross-building Windo
 
 Quit any running Readloft (including `npm run desktop:dev`) before opening a freshly installed build. The app is single-instance, so a running copy takes over.
 
+## Sync between devices
+
+Point several Readloft installs (e.g. desktop apps on two Macs) at the same library folder, such as an iCloud Drive folder, and they share reading state. Each device keeps its own local database and writes one file, `<library>/.readloft/sync/<deviceId>.json`, holding its full state. It reads the other devices' files every 20 seconds (and after each scan) and merges them record by record, newest change wins.
+
+- **Syncs:** reading progress and position, status, edited metadata, bookmarks, manual shelves and their contents.
+- **Does not sync:** reader display settings, custom covers, folder shelves (derived from the folder layout).
+- Records for books a device doesn't have yet are kept and applied once the book shows up.
+- **Caveats:** "newest" is decided by each device's clock, so keep clocks roughly right. Linux has no iCloud client; use any folder sync tool (Syncthing, etc.) on the library folder instead.
+- `SYNC=0` turns it off; `SYNC_DIR` overrides the location. Status: `GET /api/sync` or the cloud icon in the sidebar.
+
 ## Roadmap ideas
 
 - Users & auth, per-user progress

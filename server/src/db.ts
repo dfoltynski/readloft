@@ -53,6 +53,25 @@ const MIGRATIONS: string[] = [
   CREATE INDEX idx_bookmarks_book ON bookmarks(book_id, progress);`,
   `ALTER TABLE shelves ADD COLUMN folder TEXT;
   CREATE UNIQUE INDEX idx_shelves_folder ON shelves(folder) WHERE folder IS NOT NULL;`,
+  // 4: cross-device sync bookkeeping
+  `ALTER TABLE books ADD COLUMN state_updated_at TEXT;
+  ALTER TABLE books ADD COLUMN meta_updated_at TEXT;
+  ALTER TABLE bookmarks ADD COLUMN updated_at TEXT;
+  ALTER TABLE shelves ADD COLUMN updated_at TEXT;
+  ALTER TABLE shelf_books ADD COLUMN updated_at TEXT;
+  CREATE TABLE sync_tombstones (
+    kind TEXT NOT NULL, key TEXT NOT NULL, deleted_at TEXT NOT NULL,
+    PRIMARY KEY (kind, key)
+  );
+  CREATE TABLE sync_pending (
+    kind TEXT NOT NULL, key TEXT NOT NULL, json TEXT NOT NULL, updated_at TEXT NOT NULL,
+    PRIMARY KEY (kind, key)
+  );
+  UPDATE books SET state_updated_at = COALESCE(last_opened_at, updated_at) WHERE last_opened_at IS NOT NULL OR status != 'unread';
+  UPDATE books SET meta_updated_at = updated_at WHERE metadata_locked = 1;
+  UPDATE bookmarks SET updated_at = created_at;
+  UPDATE shelves SET updated_at = created_at;
+  UPDATE shelf_books SET updated_at = added_at;`,
 ];
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
