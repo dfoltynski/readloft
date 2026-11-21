@@ -1,5 +1,5 @@
 import type {
-  Book, BookAvailability, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
+  Annotation, AnnotationColor, AnnotationWithBook, Book, BookAvailability, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
 } from '@shared/types';
 
 export type BookSort = 'added' | 'title' | 'author' | 'recent';
@@ -81,6 +81,19 @@ export const api = {
   renameBookmark: (id: string, label: string) =>
     request<Bookmark>(`/api/bookmarks/${id}`, json('PATCH', { label })),
   deleteBookmark: (id: string) => request<{ ok: true }>(`/api/bookmarks/${id}`, { method: 'DELETE' }),
+  listAnnotations: (bookId: string) => request<Annotation[]>(`/api/books/${bookId}/annotations`),
+  createAnnotation: (
+    bookId: string,
+    a: { cfi: string; text: string; note?: string; color?: AnnotationColor; progress: number; chapter?: string | null; id?: string },
+  ) => request<Annotation>(`/api/books/${bookId}/annotations`, json('POST', a)),
+  patchAnnotation: (id: string, patch: { note?: string; color?: AnnotationColor }) =>
+    request<Annotation>(`/api/annotations/${id}`, json('PATCH', patch)),
+  deleteAnnotation: (id: string) => request<{ ok: true }>(`/api/annotations/${id}`, { method: 'DELETE' }),
+  searchAnnotations(query: { q?: string; color?: string; kind?: string; sort?: string } = {}) {
+    const p = new URLSearchParams();
+    for (const [k, v] of Object.entries(query)) if (v) p.set(k, v);
+    return request<AnnotationWithBook[]>(`/api/annotations?${p}`);
+  },
   stats: () => request<LibraryStats>('/api/stats'),
   syncStatus: () => request<SyncStatus>('/api/sync'),
 };

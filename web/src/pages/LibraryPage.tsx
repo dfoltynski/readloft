@@ -7,7 +7,6 @@ import ContextMenu, { type MenuItem } from '../components/ContextMenu';
 import Cover from '../components/Cover';
 import DeleteBookDialog from '../components/DeleteBookDialog';
 import { IconClose, IconGrid, IconList, IconMenu, IconSearch, IconUpload } from '../components/Icons';
-import ShortcutsDialog from '../components/ShortcutsDialog';
 import Sidebar from '../components/Sidebar';
 import { useLibraryShortcuts, useSelectionShortcuts, useScrollRestore } from '../lib/libraryHooks';
 import { ensurePdfCovers } from '../lib/pdfCover';
@@ -55,7 +54,6 @@ export default function LibraryPage() {
   const [toDelete, setToDelete] = useState<Book | null>(null);
   const [dragging, setDragging] = useState(false);
   const [uploadProgress, setUploadProgress] = useState<number | null>(null);
-  const [showShortcuts, setShowShortcuts] = useState(false);
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [anchor, setAnchor] = useState<string | null>(null);
   const [draggingIds, setDraggingIds] = useState<string[] | null>(null);
@@ -306,8 +304,7 @@ export default function LibraryPage() {
 
   const openSearch = useCallback(() => searchInput.current?.focus(), []);
   const openUpload = useCallback(() => fileInput.current?.click(), []);
-  const openHelp = useCallback(() => setShowShortcuts(true), []);
-  useLibraryShortcuts({ onSearch: openSearch, onUpload: openUpload, onHelp: openHelp });
+  useLibraryShortcuts({ onSearch: openSearch, onUpload: openUpload });
 
   const clearSearch = () => {
     setSearch('');
@@ -513,7 +510,6 @@ export default function LibraryPage() {
           }}
         />
       )}
-      {showShortcuts && <ShortcutsDialog onClose={() => setShowShortcuts(false)} />}
       <UploadOverlay dragging={dragging} progress={uploadProgress} />
     </div>
   );

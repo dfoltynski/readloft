@@ -29,6 +29,8 @@ export interface ReaderSettings {
   ttsVoices: Record<string, string>;
   /** Pause read-aloud at images, tables and other skipped content. */
   ttsPauseAtMedia: boolean;
+  /** Also paint a translucent highlight over annotated passages (default: margin marks only). */
+  showHighlights: boolean;
 }
 
 export const DEFAULT_SETTINGS: ReaderSettings = {
@@ -47,6 +49,7 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   ttsRate: 1,
   ttsVoices: {},
   ttsPauseAtMedia: false,
+  showHighlights: false,
 };
 
 const STORAGE_KEY = 'readloft.reader';

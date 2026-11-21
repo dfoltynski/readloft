@@ -1,30 +1,25 @@
-const SHORTCUTS: [string, string][] = [
-  ['← / →', 'Previous / next page'],
-  ['Space / Shift+Space', 'Next / previous page'],
-  ['PageUp / PageDown', 'Previous / next page'],
-  ['T', 'Table of contents'],
-  ['B', 'Toggle bookmark'],
-  ['Ctrl/Cmd + F', 'Search in book'],
-  ['R', 'Read aloud: start / pause / resume'],
-  ['[ / ]', 'Previous / next sentence (reading aloud)'],
-  ['F', 'Fullscreen'],
-  ['?', 'This help'],
-  ['Esc', 'Close panels / stop reading aloud'],
-];
+import { READER_SHORTCUTS, type ShortcutGroup } from '../../lib/shortcuts';
 
-export default function HelpOverlay({ onClose }: { onClose: () => void }) {
+export default function HelpOverlay({ onClose, groups = READER_SHORTCUTS }: { onClose: () => void; groups?: ShortcutGroup[] }) {
   return (
     <div className="reader-help-scrim" onClick={onClose}>
       <div className="reader-help" role="dialog" aria-label="Keyboard shortcuts" onClick={(e) => e.stopPropagation()}>
         <h2>Keyboard shortcuts</h2>
-        <dl>
-          {SHORTCUTS.map(([k, d]) => (
-            <div key={k}>
-              <dt><kbd>{k}</kbd></dt>
-              <dd>{d}</dd>
-            </div>
+        <div className="help-groups">
+          {groups.map((g) => (
+            <section key={g.title}>
+              <h3>{g.title}</h3>
+              <dl>
+                {g.items.map(([k, d]) => (
+                  <div key={k + d}>
+                    <dt><kbd>{k}</kbd></dt>
+                    <dd>{d}</dd>
+                  </div>
+                ))}
+              </dl>
+            </section>
           ))}
-        </dl>
+        </div>
         <button className="btn" onClick={onClose}>Close</button>
       </div>
     </div>

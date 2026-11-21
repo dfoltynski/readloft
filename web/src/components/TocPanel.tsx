@@ -1,14 +1,15 @@
 import { useEffect, useRef } from 'react';
-import type { Bookmark } from '@shared/types';
+import type { Annotation, Bookmark } from '@shared/types';
 import type { FoliateTocItem } from '../foliate';
 import BookmarksTab from './reader/BookmarksTab';
 import SearchTab from './reader/SearchTab';
+import NotesTab from './reader/NotesTab';
 import type { BookSearch } from './reader/useBookSearch';
 import { IconClose } from './Icons';
 
-export type PanelTab = 'contents' | 'bookmarks' | 'search';
+export type PanelTab = 'contents' | 'bookmarks' | 'notes' | 'search';
 
-const TABS: [PanelTab, string][] = [['contents', 'Contents'], ['bookmarks', 'Bookmarks'], ['search', 'Search']];
+const TABS: [PanelTab, string][] = [['contents', 'Contents'], ['bookmarks', 'Bookmarks'], ['notes', 'Notes'], ['search', 'Search']];
 
 interface Props {
   tab: PanelTab;
@@ -16,6 +17,11 @@ interface Props {
   toc: FoliateTocItem[];
   currentHref: string | undefined;
   bookmarks: Bookmark[];
+  annotations: Annotation[];
+  fraction: number;
+  bookTitle: string;
+  bookAuthors: string[];
+  onJumpAnnotation: (a: Annotation) => void;
   search: BookSearch;
   /** Incremented to ask the search input to take focus. */
   searchFocusToken: number;
@@ -27,7 +33,7 @@ interface Props {
 }
 
 export default function TocPanel({
-  tab, onTab, toc, currentHref, bookmarks, search, searchFocusToken,
+  tab, onTab, toc, currentHref, bookmarks, annotations, fraction, bookTitle, bookAuthors, onJumpAnnotation, search, searchFocusToken,
   onSelect, onJumpLocation, onDeleteBookmark, onRenameBookmark, onClose,
 }: Props) {
   const current = useRef<HTMLButtonElement>(null);
@@ -69,7 +75,7 @@ export default function TocPanel({
               className={tab === id ? 'active' : ''}
               onClick={() => onTab(id)}
             >
-              {label}
+              {label}{id === 'notes' && annotations.length > 0 && <span className="tab-count">{annotations.length}</span>}
             </button>
           ))}
         </div>
@@ -81,6 +87,9 @@ export default function TocPanel({
         {tab === 'contents' && (toc.length === 0 ? <p className="muted pad">No table of contents.</p> : renderItems(toc, 0))}
         {tab === 'bookmarks' && (
           <BookmarksTab bookmarks={bookmarks} onJump={onJumpLocation} onDelete={onDeleteBookmark} onRename={onRenameBookmark} />
+        )}
+        {tab === 'notes' && (
+          <NotesTab annotations={annotations} fraction={fraction} bookTitle={bookTitle} authors={bookAuthors} onJump={onJumpAnnotation} />
         )}
         {tab === 'search' && <SearchTab search={search} onJump={onJumpLocation} focusToken={searchFocusToken} />}
       </div>

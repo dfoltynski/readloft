@@ -9,7 +9,7 @@ import type { SyncDevice, SyncStatus } from '../../shared/types.ts';
 import { db } from './db.ts';
 import { DATA_DIR, SYNC_DIR, SYNC_ENABLED } from './config.ts';
 
-type Kind = 'bookmark' | 'shelf' | 'shelfBook';
+type Kind = 'bookmark' | 'annotation' | 'shelf' | 'shelfBook';
 
 interface BookMeta {
   title: string; authors: string[]; series: string | null; seriesIndex: number | null;
@@ -21,6 +21,10 @@ interface BookRec {
   stateUpdatedAt: string | null; meta?: BookMeta; metaUpdatedAt?: string;
 }
 interface BookmarkRec { bookKey: string; location: string; label: string; progress: number; createdAt: string; updatedAt: string; deleted?: true }
+interface AnnotationRec {
+  bookKey: string; cfi: string; text: string; note: string; color: string; progress: number; chapter: string | null;
+  createdAt: string; updatedAt: string; deleted?: true;
+}
 interface ShelfRec { name: string; createdAt: string; updatedAt: string; deleted?: true }
 interface ShelfBookRec { addedAt: string; updatedAt: string; deleted?: true }
 interface StatePart { progress: number; location: string | null; status: string; lastOpenedAt: string | null; at: string; dev: string }
@@ -28,7 +32,7 @@ interface MetaPart { meta: BookMeta; at: string; dev: string }
 interface PendBook { state?: StatePart; meta?: MetaPart }
 interface SyncFile {
   v: 1; deviceId: string; deviceName: string; writtenAt: string;
-  books: Record<string, BookRec>; bookmarks: Record<string, BookmarkRec>;
+  books: Record<string, BookRec>; bookmarks: Record<string, BookmarkRec>; annotations: Record<string, AnnotationRec>;
   shelves: Record<string, ShelfRec>; shelfBooks: Record<string, ShelfBookRec>;
 }
 
@@ -150,6 +154,12 @@ export function parkBook(bookId: string): void {
       createdAt: r.created_at, updatedAt: r.updated_at ?? r.created_at };
     putPending('bookmark', r.id, { d: dev, r: rec }, rec.updatedAt);
   }
+  for (const r of db.prepare('SELECT * FROM annotations WHERE book_id = ?').all(bookId) as unknown as
+    { id: string; cfi: string; text: string; note: string; color: string; progress: number; chapter: string | null; created_at: string; updated_at: string }[]) {
+    const rec: AnnotationRec = { bookKey: key, cfi: r.cfi, text: r.text, note: r.note, color: r.color, progress: r.progress,
+      chapter: r.chapter, createdAt: r.created_at, updatedAt: r.updated_at };
+    putPending('annotation', r.id, { d: dev, r: rec }, rec.updatedAt);
+  }
   for (const r of db.prepare(`SELECT sb.shelf_id, sb.added_at, sb.updated_at FROM shelf_books sb
     JOIN shelves s ON s.id = sb.shelf_id AND s.folder IS NULL WHERE sb.book_id = ?`).all(bookId) as unknown as
     { shelf_id: string; added_at: string; updated_at: string | null }[]) {
@@ -252,6 +262,32 @@ function applyBookmark(key: string, rec: BookmarkRec, dev: string): void {
   }
 }
 
+function applyAnnotation(key: string, rec: AnnotationRec, dev: string): void {
+  const live = db.prepare('SELECT updated_at FROM annotations WHERE id = ?').get(key) as unknown as { updated_at: string | null } | undefined;
+  const pend = readPending<{ d: string; r: AnnotationRec }>('annotation', key);
+  const localUpd = live ? (live.updated_at ?? '') : pend ? pend.r.updatedAt : null;
+  const d = decide('annotation', key, rec, dev, localUpd);
+  if (d === 'skip') return;
+  if (d === 'delete') {
+    db.prepare('DELETE FROM annotations WHERE id = ?').run(key);
+    delPending('annotation', key);
+    setTomb('annotation', key, rec.updatedAt);
+    return;
+  }
+  db.prepare('DELETE FROM sync_tombstones WHERE kind = ? AND key = ?').run('annotation', key);
+  const bid = lookup.get(rec.bookKey);
+  if (bid) {
+    db.prepare(`INSERT INTO annotations (id, book_id, cfi, text, note, color, progress, chapter, created_at, updated_at) VALUES (?,?,?,?,?,?,?,?,?,?)
+      ON CONFLICT(id) DO UPDATE SET book_id=excluded.book_id, cfi=excluded.cfi, text=excluded.text, note=excluded.note,
+      color=excluded.color, progress=excluded.progress, chapter=excluded.chapter, created_at=excluded.created_at, updated_at=excluded.updated_at`)
+      .run(key, bid, rec.cfi, rec.text, rec.note, rec.color, rec.progress, rec.chapter, rec.createdAt, rec.updatedAt);
+    delPending('annotation', key);
+  } else {
+    db.prepare('DELETE FROM annotations WHERE id = ?').run(key);
+    putPending('annotation', key, { d: dev, r: rec }, rec.updatedAt);
+  }
+}
+
 function applyShelf(key: string, rec: ShelfRec, dev: string): void {
   const live = db.prepare('SELECT updated_at, folder FROM shelves WHERE id = ?').get(key) as unknown as { updated_at: string | null; folder: string | null } | undefined;
   if (live && live.folder !== null) return; // never touch folder shelves
@@ -321,11 +357,12 @@ function applyPendingInner(): void {
       const p = readPending<PendBook>('book', key);
       delPending('book', key);
       if (p) applyBookParts(lookup.get(key)!, p.state, p.meta);
-    } else if (kind === 'bookmark' || kind === 'shelfBook') {
+    } else if (kind === 'bookmark' || kind === 'annotation' || kind === 'shelfBook') {
       const p = readPending<{ d: string; r: never }>(kind, key);
       delPending(kind, key);
       if (!p) continue;
       if (kind === 'bookmark') applyBookmark(key, p.r as BookmarkRec, p.d);
+      else if (kind === 'annotation') applyAnnotation(key, p.r as AnnotationRec, p.d);
       else applyShelfBook(key, p.r as ShelfBookRec, p.d);
     }
   }
@@ -361,6 +398,7 @@ function parseRemote(file: string, sig: string): SyncFile | null {
   return {
     v: 1, deviceId: j.deviceId, deviceName: isStr(j.deviceName) ? j.deviceName : j.deviceId,
     writtenAt: isStr(j.writtenAt) ? j.writtenAt : '', books: m(j.books) as never, bookmarks: m(j.bookmarks) as never,
+    annotations: m(j.annotations) as never,
     shelves: m(j.shelves) as never, shelfBooks: m(j.shelfBooks) as never,
   };
 }
@@ -409,6 +447,7 @@ export function mergeRemote(force = false): boolean {
   const states = new Map<string, StatePart>();
   const metas = new Map<string, MetaPart>();
   const bm = new Map<string, { rec: BookmarkRec; dev: string }>();
+  const an = new Map<string, { rec: AnnotationRec; dev: string }>();
   const sh = new Map<string, { rec: ShelfRec; dev: string }>();
   const sb = new Map<string, { rec: ShelfBookRec; dev: string }>();
   const devices = new Map<string, SyncDevice>();
@@ -448,6 +487,14 @@ export function mergeRemote(force = false): boolean {
         offer(bm, key, { bookKey: v.bookKey.normalize('NFC'), location: v.location, label: isStr(v.label) ? v.label : '', progress: v.progress, createdAt: v.createdAt, updatedAt: v.updatedAt }, dev);
       }
     }
+    for (const [key, v] of Object.entries(r.annotations)) {
+      if (!isObj(v) || !isStr(v.updatedAt)) continue;
+      if (v.deleted === true) offer(an, key, { bookKey: '', cfi: '', text: '', note: '', color: 'yellow', progress: 0, chapter: null, createdAt: '', updatedAt: v.updatedAt, deleted: true }, dev);
+      else if (isStr(v.bookKey) && isStr(v.cfi) && v.cfi && isNum(v.progress) && isStr(v.createdAt)) {
+        offer(an, key, { bookKey: v.bookKey.normalize('NFC'), cfi: v.cfi, text: isStr(v.text) ? v.text : '', note: isStr(v.note) ? v.note : '',
+          color: isStr(v.color) ? v.color : 'yellow', progress: v.progress, chapter: nstr(v.chapter), createdAt: v.createdAt, updatedAt: v.updatedAt }, dev);
+      }
+    }
     for (const [key, v] of Object.entries(r.shelves)) {
       if (!isObj(v) || !isStr(v.updatedAt)) continue;
       if (v.deleted === true) offer(sh, key, { name: '', createdAt: '', updatedAt: v.updatedAt, deleted: true }, dev);
@@ -469,6 +516,7 @@ export function mergeRemote(force = false): boolean {
     const bookKeys = new Set([...states.keys(), ...metas.keys()]);
     for (const key of bookKeys) applyBook(key.normalize('NFC'), states.get(key), metas.get(key));
     for (const [key, v] of bm) applyBookmark(key, v.rec, v.dev);
+    for (const [key, v] of an) applyAnnotation(key, v.rec, v.dev);
     for (const [key, v] of sb) applyShelfBook(key, v.rec, v.dev);
     applyPendingInner();
     db.exec('COMMIT');
@@ -491,6 +539,7 @@ function buildState(): Omit<SyncFile, 'writtenAt'> {
   db.prepare('DELETE FROM sync_tombstones WHERE deleted_at < ?').run(cutoff);
   const books: Record<string, BookRec> = {};
   const bookmarks: Record<string, BookmarkRec> = {};
+  const annotations: Record<string, AnnotationRec> = {};
   const shelves: Record<string, ShelfRec> = {};
   const shelfBooks: Record<string, ShelfBookRec> = {};
 
@@ -536,6 +585,15 @@ function buildState(): Omit<SyncFile, 'writtenAt'> {
     if (bookmarks[r.key]) continue;
     try { bookmarks[r.key] = (JSON.parse(r.json) as { r: BookmarkRec }).r; } catch { /* ignore */ }
   }
+  for (const r of db.prepare('SELECT an.*, b.path FROM annotations an JOIN books b ON b.id = an.book_id ORDER BY an.id').all() as unknown as
+    { id: string; path: string; cfi: string; text: string; note: string; color: string; progress: number; chapter: string | null; created_at: string; updated_at: string }[]) {
+    annotations[r.id] = { bookKey: bookKeyOf(r.path), cfi: r.cfi, text: r.text, note: r.note, color: r.color, progress: r.progress,
+      chapter: r.chapter, createdAt: r.created_at, updatedAt: r.updated_at };
+  }
+  for (const r of db.prepare('SELECT key, json FROM sync_pending WHERE kind = ? ORDER BY key').all('annotation') as unknown as { key: string; json: string }[]) {
+    if (annotations[r.key]) continue;
+    try { annotations[r.key] = (JSON.parse(r.json) as { r: AnnotationRec }).r; } catch { /* ignore */ }
+  }
   for (const r of db.prepare('SELECT * FROM shelves WHERE folder IS NULL ORDER BY id').all() as unknown as
     { id: string; name: string; created_at: string; updated_at: string | null }[]) {
     shelves[r.id] = { name: r.name, createdAt: r.created_at, updatedAt: r.updated_at ?? r.created_at };
@@ -551,10 +609,11 @@ function buildState(): Omit<SyncFile, 'writtenAt'> {
   }
   for (const t of db.prepare('SELECT kind, key, deleted_at FROM sync_tombstones ORDER BY kind, key').all() as unknown as { kind: Kind; key: string; deleted_at: string }[]) {
     if (t.kind === 'bookmark' && !bookmarks[t.key]) bookmarks[t.key] = { bookKey: '', location: '', label: '', progress: 0, createdAt: '', updatedAt: t.deleted_at, deleted: true };
+    else if (t.kind === 'annotation' && !annotations[t.key]) annotations[t.key] = { bookKey: '', cfi: '', text: '', note: '', color: 'yellow', progress: 0, chapter: null, createdAt: '', updatedAt: t.deleted_at, deleted: true };
     else if (t.kind === 'shelf' && !shelves[t.key]) shelves[t.key] = { name: '', createdAt: '', updatedAt: t.deleted_at, deleted: true };
     else if (t.kind === 'shelfBook' && !shelfBooks[t.key]) shelfBooks[t.key] = { addedAt: '', updatedAt: t.deleted_at, deleted: true };
   }
-  return { v: 1, deviceId: device!.id, deviceName: device!.name, books, bookmarks, shelves, shelfBooks };
+  return { v: 1, deviceId: device!.id, deviceName: device!.name, books, bookmarks, annotations, shelves, shelfBooks };
 }
 
 /** Write this device's full state (atomically). Skips when unchanged. */

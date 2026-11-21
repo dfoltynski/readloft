@@ -27,6 +27,13 @@
 //   POST   /api/books/:id/bookmarks body: { location, label, progress } -> Bookmark
 //   PATCH  /api/bookmarks/:id body: { label }       -> Bookmark
 //   DELETE /api/bookmarks/:id                      -> { ok: true }
+//   GET    /api/books/:id/annotations              -> Annotation[] (sorted by progress)
+//   POST   /api/books/:id/annotations body: { cfi, text, note?, color?, progress, chapter?, id? } -> Annotation
+//            (optional id lets the client restore a deleted annotation under the same id; must be a UUID)
+//   PATCH  /api/annotations/:id body: { note?, color? } -> Annotation
+//   DELETE /api/annotations/:id                    -> { ok: true }
+//   GET    /api/annotations?q=&color=&kind=all|notes|highlights&sort=recent|book -> AnnotationWithBook[]
+//            q matches text or note (case-insensitive); sort: recent (updated desc, default) | book (title, progress)
 //   GET    /api/stats                              -> LibraryStats
 //   GET    /api/sync                               -> SyncStatus (cross-device sync via per-device JSON files in <library>/.readloft/sync)
 // Errors: non-2xx with { error: string }.
@@ -78,6 +85,27 @@ export interface Bookmark {
   label: string;
   progress: number;        // 0..1
   createdAt: string;
+}
+
+export type AnnotationColor = 'yellow' | 'green' | 'blue' | 'pink';
+
+export interface Annotation {
+  id: string;
+  bookId: string;
+  cfi: string;             // foliate CFI (EPUB) or the reader's location string (PDF fallback)
+  text: string;            // quoted passage
+  note: string;            // '' = highlight only
+  color: AnnotationColor;
+  progress: number;        // 0..1
+  chapter: string | null;  // TOC label at creation
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AnnotationWithBook extends Annotation {
+  bookTitle: string;
+  bookAuthors: string[];
+  bookHasCover: boolean;
 }
 
 export interface Shelf {

@@ -72,6 +72,9 @@ const MIGRATIONS: string[] = [
   UPDATE bookmarks SET updated_at = created_at;
   UPDATE shelves SET updated_at = created_at;
   UPDATE shelf_books SET updated_at = added_at;`,
+  // 5: notes & highlights
+  `CREATE TABLE annotations (id TEXT PRIMARY KEY, book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE, cfi TEXT NOT NULL, text TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT 'yellow', progress REAL NOT NULL DEFAULT 0, chapter TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
+  CREATE INDEX idx_annotations_book ON annotations(book_id, progress);`,
 ];
 
 fs.mkdirSync(DATA_DIR, { recursive: true });

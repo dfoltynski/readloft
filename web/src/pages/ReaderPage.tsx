@@ -1,12 +1,15 @@
 import { runtimeImport } from '../lib/runtimeImport';
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Book, Bookmark } from '@shared/types';
 import { api, fileUrl } from '../api';
 import { IconBack, IconClose, IconSettings, IconToc } from '../components/Icons';
 import NightLightOverlay from '../components/NightLightOverlay';
 import HelpOverlay from '../components/reader/HelpOverlay';
 import ContextMenu, { type MenuItem } from '../components/ContextMenu';
+import { useToast } from '../components/Toast';
+import { Composer, HoverTip, PeekCard, SelectionToolbar } from '../components/reader/AnnotationCards';
+import { useAnnotations, type AnnotationsApi, type SelInfo } from '../components/reader/useAnnotations';
 import ReadAloudBar from '../components/reader/ReadAloudBar';
 import { useReadAloud } from '../components/reader/useReadAloud';
 import { IconBookmark, IconFullscreen, IconNightLight, IconSpeaker } from '../components/reader/ReaderIcons';
@@ -113,6 +116,8 @@ function CloudDownload({ title, info, onBack }: {
 export default function ReaderPage() {
   const { id = '' } = useParams();
   const navigate = useNavigate();
+  const toast = useToast();
+  const [params, setParams] = useSearchParams();
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
@@ -140,7 +145,7 @@ export default function ReaderPage() {
   const [helpOpen, setHelpOpen] = useState(false);
   const [footnoteOpen, setFootnoteOpen] = useState(false);
   const [bookLang, setBookLang] = useState<string>();
-  const [menu, setMenu] = useState<{ x: number; y: number; range: Range | null; selected: string } | null>(null);
+  const [menu, setMenu] = useState<{ x: number; y: number; range: Range | null; selected: string; sel: SelInfo | null } | null>(null);
   const [fullscreen, setFullscreen] = useState(!!document.fullscreenElement);
   const nightLight = useNightLight();
   const getView = useCallback(() => viewRef.current, []);
@@ -175,8 +180,21 @@ export default function ReaderPage() {
     toggleBookmark: () => {}, toggleFullscreen: () => {}, openSearch: () => {},
     toggleToc: () => {}, toggleHelp: () => {}, escape: () => {}, closeFootnote: () => {},
     readAloud: () => {}, ttsPrev: () => {}, ttsNext: () => {},
+    addNote: () => {}, toggleNotes: () => {},
   });
+  const annRef = useRef<AnnotationsApi | null>(null);
   useDismiss(settingsRef, settingsOpen, () => setSettingsOpen(false));
+
+  const ann = useAnnotations({
+    bookId: id,
+    getView,
+    ready: state.kind === 'ready',
+    showHighlights: settings.showHighlights,
+    getPosition: () => live.current.position,
+    pageCfi: (cfi) => pageStart(cfi, cfiRef.current),
+    toast,
+  });
+  annRef.current = ann;
 
   // ---- Bookmarks ----
   useEffect(() => {
@@ -218,6 +236,13 @@ export default function ReaderPage() {
       setTocOpen((o) => !o);
     },
     toggleHelp: () => setHelpOpen((h) => !h),
+    addNote: () => annRef.current?.noteKey(),
+    toggleNotes: () => {
+      const l = live.current;
+      setSettingsOpen(false);
+      if (l.tocOpen && l.panelTab === 'notes') setTocOpen(false);
+      else { setPanelTab('notes'); setTocOpen(true); }
+    },
     closeFootnote: () => setFootnoteOpen(false),
     readAloud: () => tts.toggle(),
     ttsPrev: () => { if (tts.state.status !== 'idle') tts.prev(); },
@@ -225,6 +250,7 @@ export default function ReaderPage() {
     escape: () => {
       const l = live.current;
       if (menu) setMenu(null);
+      else if (annRef.current?.escape()) return;
       else if (l.helpOpen) setHelpOpen(false);
       else if (tts.state.status !== 'idle' && !l.tocOpen) tts.stop();
       else if (l.footnoteOpen) setFootnoteOpen(false);
@@ -298,6 +324,8 @@ export default function ReaderPage() {
         case '[': actions.current.ttsPrev(); break;
         case ']': actions.current.ttsNext(); break;
         case '?': actions.current.toggleHelp(); break;
+        case 'n': case 'N': actions.current.addNote(); break;
+        case 'a': case 'A': actions.current.toggleNotes(); break;
         case 'ArrowLeft': void v.goLeft(); break;
         case 'ArrowRight': void v.goRight(); break;
         case 'PageUp': void v.prev(); break;
@@ -396,17 +424,19 @@ export default function ReaderPage() {
         }
         if (cancelled) return;
 
-        view.addEventListener('load', ((e: CustomEvent<{ doc: Document }>) => {
+        view.addEventListener('load', ((e: CustomEvent<{ doc: Document; index: number }>) => {
           const doc = e.detail.doc;
+          const sectionIndex = e.detail.index;
+          annRef.current?.attachDoc(doc, sectionIndex);
           doc.addEventListener('keydown', onKey);
           doc.addEventListener('mousemove', poke);
           doc.addEventListener('contextmenu', (ev) => {
-            if (!ttsAvail.current) return;
+            const sel = doc.getSelection();
+            const selected = sel && !sel.isCollapsed ? sel.toString() : '';
+            if (!ttsAvail.current && !selected) return;
             ev.preventDefault();
             const frame = doc.defaultView?.frameElement;
             const r = frame ? frame.getBoundingClientRect() : { left: 0, top: 0 };
-            const sel = doc.getSelection();
-            const selected = sel && !sel.isCollapsed ? sel.toString() : '';
             let range: Range | null = null;
             if (selected && sel?.rangeCount) range = sel.getRangeAt(0).cloneRange();
             else {
@@ -417,7 +447,8 @@ export default function ReaderPage() {
                 if (cp) { range = doc.createRange(); range.setStart(cp.offsetNode, cp.offset); range.collapse(true); }
               }
             }
-            setMenu({ x: r.left + ev.clientX, y: r.top + ev.clientY, range, selected });
+            const selInfo = selected && sel?.rangeCount ? annRef.current?.selectionFrom(doc, sectionIndex, sel.getRangeAt(0)) ?? null : null;
+            setMenu({ x: r.left + ev.clientX, y: r.top + ev.clientY, range, selected, sel: selInfo });
           });
           doc.addEventListener('click', (ev) => {
             if (live.current.footnoteOpen && !(ev.target as Element | null)?.closest?.('a[href]')) {
@@ -426,6 +457,7 @@ export default function ReaderPage() {
             }
             if ((ev.target as Element | null)?.closest?.('a[href]')) return;
             if (doc.defaultView?.getSelection()?.toString()) return;
+            if (annRef.current?.onDocClick(doc, ev)) return;
             // Convert iframe-relative coordinates to viewport coordinates.
             const frame = doc.defaultView?.frameElement;
             const left = frame ? frame.getBoundingClientRect().left : 0;
@@ -486,6 +518,26 @@ export default function ReaderPage() {
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, poke]);
+
+  // ---- Deep links from the notes page: ?panel=notes, ?cfi=…&ann=… ----
+  const deepLinked = useRef(false);
+  useEffect(() => { deepLinked.current = false; }, [id]);
+  useEffect(() => {
+    if (state.kind !== 'ready' || deepLinked.current) return;
+    const panel = params.get('panel');
+    const annId = params.get('ann');
+    if (annId) {
+      const a = ann.annotations.find((x) => x.id === annId);
+      if (!a) return; // wait for the annotations to load
+      deepLinked.current = true;
+      void ann.jumpTo(a);
+    } else if (panel === 'notes') {
+      deepLinked.current = true;
+      setPanelTab('notes');
+      setTocOpen(true);
+    } else return;
+    setParams((p) => { const n = new URLSearchParams(p); n.delete('panel'); n.delete('ann'); n.delete('cfi'); return n; }, { replace: true });
+  }, [state.kind, params, ann.annotations]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ---- Apply settings to the renderer ----
   useEffect(() => {
@@ -602,7 +654,7 @@ export default function ReaderPage() {
         )}
         <button
           className="icon-btn"
-          aria-label="Contents, bookmarks and search (T)"
+          aria-label="Contents, bookmarks, notes and search (T)"
           aria-expanded={tocOpen}
           onClick={() => actions.current.toggleToc()}
         >
@@ -633,6 +685,14 @@ export default function ReaderPage() {
           toc={toc}
           currentHref={position.currentHref}
           bookmarks={bookmarks}
+          annotations={ann.annotations}
+          fraction={position.fraction}
+          bookTitle={book?.title ?? ''}
+          bookAuthors={book?.authors ?? []}
+          onJumpAnnotation={(a) => {
+            void ann.jumpTo(a);
+            if (window.innerWidth < 800) setTocOpen(false);
+          }}
           search={search}
           searchFocusToken={searchFocus}
           onClose={() => setTocOpen(false)}
@@ -723,15 +783,57 @@ export default function ReaderPage() {
       ) : null}
       {menu && (
         <ContextMenu x={menu.x} y={menu.y} onClose={() => setMenu(null)} items={((): MenuItem[] => {
-          const items: MenuItem[] = [
-            { label: menu.selected ? 'Read aloud from selection' : 'Read from here', onSelect: () => tts.start(menu.range) },
-          ];
+          const items: MenuItem[] = [];
+          const msel = menu.sel;
+          if (msel) {
+            items.push({ label: 'Highlight', onSelect: () => void ann.highlight(msel, 'yellow') });
+            items.push({ label: 'Add note', onSelect: () => ann.startNote(msel) });
+          }
+          if (ttsAvail.current) {
+            items.push({ label: menu.selected ? 'Read aloud from selection' : 'Read from here', onSelect: () => tts.start(menu.range) });
+          }
           if (menu.selected) {
             items.push({ label: 'Copy', onSelect: () => void navigator.clipboard?.writeText(menu.selected).catch(() => {}) });
           }
           return items;
         })()} />
       )}
+
+      {ann.sel && !ann.composer && (
+        <SelectionToolbar
+          sel={ann.sel}
+          canRead={!tts.unavailable}
+          onColor={(c) => void ann.highlight(ann.sel!, c)}
+          onNote={() => ann.startNote(ann.sel!)}
+          onCopy={() => { void navigator.clipboard?.writeText(ann.sel!.text).catch(() => {}); ann.closeSel(); }}
+          onRead={() => { const r = ann.sel!.range; ann.closeSel(); tts.start(r); }}
+          onDelete={() => { if (ann.sel?.existingId) ann.remove(ann.sel.existingId); ann.closeSel(); }}
+        />
+      )}
+      {ann.composer && (
+        <Composer
+          state={ann.composer}
+          quote={ann.composer.kind === 'new' ? ann.composer.sel.text : ann.annotations.find((a) => a.id === (ann.composer as { id: string }).id)?.text ?? ''}
+          onChange={(patch) => ann.setComposer((c) => (c ? { ...c, ...patch } : c))}
+          onSave={() => void ann.saveComposer()}
+          onCancel={ann.cancelComposer}
+        />
+      )}
+      {ann.peek && !ann.composer && (() => {
+        const a = ann.annotations.find((x) => x.id === ann.peek!.id);
+        return a ? (
+          <PeekCard
+            annotation={a}
+            peek={ann.peek}
+            count={ann.annotations.length}
+            onEdit={() => ann.startEdit(a.id)}
+            onDelete={() => ann.remove(a.id)}
+            onClose={() => ann.setPeek(null)}
+            onOpenPanel={() => { ann.setPeek(null); actions.current.toggleNotes(); }}
+          />
+        ) : null;
+      })()}
+      {ann.hover && !ann.peek && !ann.composer && <HoverTip hover={ann.hover} />}
 
       {helpOpen && <HelpOverlay onClose={() => setHelpOpen(false)} />}
       <NightLightOverlay />

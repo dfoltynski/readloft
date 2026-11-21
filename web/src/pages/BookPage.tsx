@@ -16,6 +16,7 @@ export default function BookPage() {
   const book = useAsync(() => api.getBook(id), [id]);
   const avail = useAsync(() => api.getAvailability(id).catch(() => null), [id]);
   const shelves = useAsync(() => api.listShelves(), []);
+  const notes = useAsync(() => api.listAnnotations(id).catch(() => []), [id]);
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -76,6 +77,13 @@ export default function BookPage() {
           <h1 className="detail-title">{b.title}</h1>
           <p className="detail-authors">{authorLine(b) || 'Unknown author'}</p>
           {series && <p className="muted">{series}</p>}
+          {(notes.data?.length ?? 0) > 0 && (
+            <p className="small">
+              <Link to={`/read/${b.id}?panel=notes`} className="detail-notes-link">
+                {notes.data!.length} {notes.data!.length === 1 ? 'note' : 'notes'}
+              </Link>
+            </p>
+          )}
 
           <div className="detail-actions">
             <Link to={`/read/${b.id}`} className="btn btn-primary">

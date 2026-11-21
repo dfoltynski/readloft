@@ -25,7 +25,9 @@ function Svg({ size = 18, children }: IconProps & { children: ReactNode }) {
 
 export const IconLogo = (p: IconProps) => (
   <Svg {...p}>
-    <path d="M5 4h12a2 2 0 0 1 2 2v14l-3-2-3 2-3-2-3 2V6a2 2 0 0 1 2-2z" />
+    {/* Readloft mark: a bookmark with a loft-gable top and lines of text */}
+    <path d="M12 3l6 4v13l-6-3.2L6 20V7z" />
+    <path d="M9.5 10h5M9.5 13h3" />
   </Svg>
 );
 export const IconBooks = (p: IconProps) => (
@@ -150,5 +152,17 @@ export const IconSettings = (p: IconProps) => (
 export const IconDownload = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 4v12M7 11l5 5 5-5M4 19h16" />
+  </Svg>
+);
+
+export const IconNote = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M5 4h14v12l-5 5H5zM14 21v-5h5M8 9h8M8 13h4" />
+  </Svg>
+);
+export const IconKeyboard = (p: IconProps) => (
+  <Svg {...p}>
+    <rect x="3" y="6" width="18" height="12" rx="2" />
+    <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
   </Svg>
 );

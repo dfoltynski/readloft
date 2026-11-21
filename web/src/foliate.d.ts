@@ -68,4 +68,8 @@ export interface FoliateView extends HTMLElement {
   getSectionFractions(): number[];
   search(opts: FoliateSearchOptions): AsyncGenerator<FoliateSearchResult>;
   clearSearch(): void;
+  addAnnotation(annotation: { value: string; [k: string]: unknown }, remove?: boolean): Promise<unknown>;
+  deleteAnnotation(annotation: { value: string; [k: string]: unknown }): Promise<unknown>;
+  getCFI(index: number, range?: Range): string;
+  resolveCFI(cfi: string): { index: number; anchor: (doc: Document) => Range } | Promise<{ index: number; anchor: (doc: Document) => Range }>;
 }

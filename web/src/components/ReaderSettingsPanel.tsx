@@ -102,6 +102,7 @@ export default function ReaderSettingsPanel({ settings: s, fixedLayout, onChange
       {wakeLockSupported && (
         <Toggle label="Keep screen awake" value={s.keepAwake} onChange={(keepAwake) => onChange({ keepAwake })} />
       )}
+      <Toggle label="Show highlights in text" value={s.showHighlights} onChange={(showHighlights) => onChange({ showHighlights })} />
       <NightLightControls />
     </div>
   );

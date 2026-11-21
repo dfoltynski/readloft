@@ -1,14 +1,15 @@
-import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
+import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { BookStatus, LibraryStats, Shelf, SyncStatus } from '@shared/types';
 import { api } from '../api';
 import { BOOKS_DRAG_TYPE } from './BookCard';
 import { useDismiss, useTheme } from '../lib/hooks';
 import { formatRelative } from '../lib/format';
+import { openShortcuts } from '../lib/shortcuts';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
 import {
-  IconBooks, IconCheck, IconCircle, IconFolder, IconLogo, IconMoon, IconPlus, IconReading, IconRefresh,
+  IconBooks, IconCheck, IconCircle, IconFolder, IconKeyboard, IconLogo, IconMoon, IconNote, IconPlus, IconReading, IconRefresh,
   IconShelf, IconSun, IconSync,
 } from './Icons';
 
@@ -17,6 +18,8 @@ interface Props {
   stats: LibraryStats | undefined;
   activeShelfId?: string;
   activeStatus?: BookStatus;
+  /** True on the Notes page. */
+  activeNotes?: boolean;
   open: boolean;
   onClose: () => void;
   /** Called after anything that changes shelves or the book list (scan, shelf edits). */
@@ -30,7 +33,7 @@ const FILTERS: { label: string; status?: BookStatus; icon: ReactNode; count: (s:
   { label: 'Unread', status: 'unread', icon: <IconCircle />, count: (s) => s.unread },
 ];
 
-export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, open, onClose, onChanged }: Props) {
+export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, activeNotes, open, onClose, onChanged }: Props) {
   const toast = useToast();
   const navigate = useNavigate();
   const location = useLocation();
@@ -47,6 +50,7 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
   const newInput = useRef<HTMLInputElement>(null);
   const [sync, setSync] = useState<SyncStatus | null>(null);
   const [syncOpen, setSyncOpen] = useState(false);
+  const [notesCount, setNotesCount] = useState<number | null>(null);
   const syncPop = useRef<HTMLDivElement>(null);
   const closeSync = useCallback(() => setSyncOpen(false), []);
   useDismiss(syncPop, syncOpen, closeSync);
@@ -57,6 +61,13 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
     const t = setInterval(load, 20_000);
     return () => { alive = false; clearInterval(t); };
   }, []);
+  useEffect(() => {
+    let alive = true;
+    const load = () => api.searchAnnotations().then((l) => alive && setNotesCount(l.length), () => {});
+    load();
+    const t = setInterval(load, 30_000);
+    return () => { alive = false; clearInterval(t); };
+  }, [location.pathname]);
   const syncTip = !sync ? 'Sync status'
     : !sync.enabled ? 'Sync off'
     : sync.error ? `Sync error: ${sync.error}`
@@ -138,18 +149,26 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
         <nav className="side-scroll">
           <div className="side-heading">Library</div>
           {FILTERS.map((f) => {
-            const active = !activeShelfId && activeStatus === f.status;
+            const active = !activeNotes && !activeShelfId && activeStatus === f.status;
             return (
-              <Link
-                key={f.label}
-                to={f.status ? `/?status=${f.status}` : '/'}
-                className={`side-item${active ? ' active' : ''}`}
-                aria-current={active ? 'page' : undefined}
-              >
-                {f.icon}
-                <span className="side-label">{f.label}</span>
-                {stats && <span className="side-count">{f.count(stats)}</span>}
-              </Link>
+              <Fragment key={f.label}>
+                <Link
+                  to={f.status ? `/?status=${f.status}` : '/'}
+                  className={`side-item${active ? ' active' : ''}`}
+                  aria-current={active ? 'page' : undefined}
+                >
+                  {f.icon}
+                  <span className="side-label">{f.label}</span>
+                  {stats && <span className="side-count">{f.count(stats)}</span>}
+                </Link>
+                {f.status === 'reading' && (
+                  <Link to="/notes" className={`side-item${activeNotes ? ' active' : ''}`} aria-current={activeNotes ? 'page' : undefined}>
+                    <IconNote />
+                    <span className="side-label">Notes</span>
+                    {notesCount !== null && <span className="side-count">{notesCount}</span>}
+                  </Link>
+                )}
+              </Fragment>
             );
           })}
 
@@ -292,6 +311,9 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, o
               </div>
             )}
           </div>
+          <button className="icon-btn" onClick={openShortcuts} aria-label="Keyboard shortcuts (?)">
+            <IconKeyboard />
+          </button>
           <button
             className="icon-btn"
             onClick={toggleTheme}

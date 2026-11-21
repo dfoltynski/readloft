@@ -8,11 +8,10 @@ const isTyping = (t: EventTarget | null) => {
 interface ShortcutHandlers {
   onSearch: () => void;
   onUpload: () => void;
-  onHelp: () => void;
 }
 
 /** Library-wide single-key shortcuts. Ignored while typing or with modifiers. */
-export function useLibraryShortcuts({ onSearch, onUpload, onHelp }: ShortcutHandlers) {
+export function useLibraryShortcuts({ onSearch, onUpload }: ShortcutHandlers) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.metaKey || e.ctrlKey || e.altKey || isTyping(e.target)) return;
@@ -23,14 +22,11 @@ export function useLibraryShortcuts({ onSearch, onUpload, onHelp }: ShortcutHand
       } else if (e.key === 'u') {
         e.preventDefault();
         onUpload();
-      } else if (e.key === '?') {
-        e.preventDefault();
-        onHelp();
       }
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [onSearch, onUpload, onHelp]);
+  }, [onSearch, onUpload]);
 }
 
 /** Escape clears the selection, Cmd/Ctrl+A selects all visible books. Ignored while typing or in dialogs/menus. */

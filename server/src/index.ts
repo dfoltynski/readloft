@@ -9,6 +9,7 @@ import { scanLibrary } from './scanner.ts';
 import { books, HttpError } from './routes/books.ts';
 import { shelves } from './routes/shelves.ts';
 import { bookmarks } from './routes/bookmarks.ts';
+import { annotations } from './routes/annotations.ts';
 import { library } from './routes/library.ts';
 import { startSync } from './sync.ts';
 
@@ -27,6 +28,7 @@ app.onError((err, c) => {
 app.route('/api', books);
 app.route('/api', shelves);
 app.route('/api', bookmarks);
+app.route('/api', annotations);
 app.route('/api', library);
 app.all('/api/*', (c) => c.json({ error: 'not found' }, 404));
 
