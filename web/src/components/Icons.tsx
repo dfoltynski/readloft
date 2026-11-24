@@ -65,30 +65,6 @@ export const IconPlus = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Svg>
 );
-export const IconSearch = (p: IconProps) => (
-  <Svg {...p}>
-    <circle cx="11" cy="11" r="6.5" />
-    <path d="M16 16l4.5 4.5" />
-  </Svg>
-);
-export const IconGrid = (p: IconProps) => (
-  <Svg {...p}>
-    <rect x="4" y="4" width="6.5" height="6.5" rx="1" />
-    <rect x="13.5" y="4" width="6.5" height="6.5" rx="1" />
-    <rect x="4" y="13.5" width="6.5" height="6.5" rx="1" />
-    <rect x="13.5" y="13.5" width="6.5" height="6.5" rx="1" />
-  </Svg>
-);
-export const IconList = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M4 6h16M4 12h16M4 18h16" />
-  </Svg>
-);
-export const IconUpload = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M12 16V4M7 9l5-5 5 5M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3" />
-  </Svg>
-);
 export const IconRefresh = (p: IconProps) => (
   <Svg {...p}>
     <path d="M20 11a8 8 0 0 0-14-4L4 9M4 4v5h5M4 13a8 8 0 0 0 14 4l2-2M20 20v-5h-5" />
@@ -117,11 +93,6 @@ export const IconMore = (p: IconProps) => (
     <circle cx="19" cy="12" r="1.2" fill="currentColor" />
   </Svg>
 );
-export const IconMenu = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M4 7h16M4 12h16M4 17h16" />
-  </Svg>
-);
 export const IconBack = (p: IconProps) => (
   <Svg {...p}>
     <path d="M15 5l-7 7 7 7" />
@@ -135,18 +106,6 @@ export const IconChevronRight = (p: IconProps) => (
 export const IconClose = (p: IconProps) => (
   <Svg {...p}>
     <path d="M6 6l12 12M18 6L6 18" />
-  </Svg>
-);
-export const IconToc = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" />
-  </Svg>
-);
-export const IconSettings = (p: IconProps) => (
-  <Svg {...p}>
-    <path d="M4 7h10M18 7h2M4 17h2M10 17h10" />
-    <circle cx="16" cy="7" r="2" />
-    <circle cx="8" cy="17" r="2" />
   </Svg>
 );
 export const IconDownload = (p: IconProps) => (

@@ -3,7 +3,6 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ToastProvider } from './components/Toast';
-import { applyDesignSystem } from './design/designSystem';
 import './styles.css';
 import './design/studio.css';
 
@@ -25,7 +24,7 @@ function migrateStorage(store: Storage): void {
 }
 migrateStorage(localStorage);
 migrateStorage(sessionStorage);
-applyDesignSystem();
+try { localStorage.removeItem('readloft.designSystem'); } catch { /* ignore */ }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

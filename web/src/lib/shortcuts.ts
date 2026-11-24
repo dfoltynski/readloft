@@ -56,7 +56,7 @@ export const READER_SHORTCUTS: ShortcutGroup[] = [
     title: 'General',
     items: [
       ['?', 'This help'],
-      ['Esc', 'Close panels / stop reading aloud'],
+      ['Esc', 'Close panel, stop reading aloud, or back to library'],
     ],
   },
 ];

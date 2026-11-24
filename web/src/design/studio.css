@@ -1,6 +1,6 @@
 /*
- * Studio design system for Readloft. Everything is scoped under :root[data-ds="studio"] (plus one
- * classic-only rule), so the classic design is untouched when studio is not active. Tokens come from
+ * Studio design system for Readloft. Everything is scoped under :root[data-ds="studio"] (set
+ * statically on <html> in index.html; the scope keeps these rules above the base styles). Tokens come from
  * the drape studio language (ink on paper; Manrope / Space Grotesk / JetBrains Mono / Literata)
  * plus Readloft's brand orange. Dark variant: inverted ink-on-dark palette, same structure.
  */
@@ -57,10 +57,6 @@
     color-scheme: dark;
   }
 }
-
-/* ---------- Classic design: the switch button added to the sidebar ---------- */
-:root[data-ds="classic"] .side-design { padding: 0 8px 10px; }
-:root[data-ds="classic"] .side-design .btn { width: 100%; justify-content: center; color: var(--text-muted); }
 
 /* ---------- Base ---------- */
 :root[data-ds="studio"] body { font-family: var(--sans); font-size: 13px; background: var(--paper); color: var(--ink); }

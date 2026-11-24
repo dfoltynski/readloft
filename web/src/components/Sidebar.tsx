@@ -2,11 +2,10 @@ import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } fr
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
 import type { BookStatus, LibraryStats, Shelf } from '@shared/types';
 import { api } from '../api';
-import { BOOKS_DRAG_TYPE } from './BookCard';
+import { BOOKS_DRAG_TYPE } from '../lib/dragTypes';
 import { useDismiss, useTheme } from '../lib/hooks';
 import { formatRelative } from '../lib/format';
 import { useSyncStatus } from '../lib/sync';
-import { toggleDesignSystem, useDesignSystem } from '../design/designSystem';
 import { openShortcuts } from '../lib/shortcuts';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
@@ -51,7 +50,6 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
   const folderShelves = shelves.filter((s) => s.source === 'folder');
   const newInput = useRef<HTMLInputElement>(null);
   const { status: sync, syncing, syncNow } = useSyncStatus();
-  const studio = useDesignSystem() === 'studio';
   const [syncOpen, setSyncOpen] = useState(false);
   const [notesCount, setNotesCount] = useState<number | null>(null);
   const syncPop = useRef<HTMLDivElement>(null);
@@ -286,7 +284,7 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
           )}
         </nav>
 
-        {studio && sync && (
+        {sync && (
           <div className="st-tip">
             <b>{sync.enabled ? 'Sync is on' : 'Sync is off'}</b>
             {sync.enabled
@@ -341,11 +339,6 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
             {theme === 'dark' ? <IconSun /> : <IconMoon />}
           </button>
         </div>
-        {!studio && (
-          <div className="side-design">
-            <button className="btn btn-quiet" onClick={toggleDesignSystem}>Try new design</button>
-          </div>
-        )}
       </aside>
 
       {menu && (

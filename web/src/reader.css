@@ -3,8 +3,6 @@
 /* Extra themes: chrome colors derive from --r-bg / --r-fg (set inline), only edge cases here. */
 .reader-black { --r-chrome: #0a0a0a; }
 .reader-paper { --r-chrome: color-mix(in srgb, var(--r-bg) 90%, var(--r-fg)); }
-.reader-popover .segmented { flex-wrap: wrap; }
-.reader-popover .segmented button { padding: 5px 8px; font-size: 12px; }
 
 /* Panel tabs */
 .reader .panel-head { padding-left: 8px; }
@@ -39,9 +37,6 @@
 }
 .search-hit:hover { background: var(--r-hover); }
 .search-excerpt mark { background: color-mix(in srgb, var(--accent) 35%, transparent); color: inherit; border-radius: 2px; padding: 0 1px; }
-
-/* Time left */
-.reader-time { font-size: 12px; opacity: 0.65; font-variant-numeric: tabular-nums; }
 
 /* Night light time inputs */
 .time-row { display: flex; align-items: center; gap: 8px; }

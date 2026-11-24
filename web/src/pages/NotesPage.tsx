@@ -3,7 +3,6 @@ import { Link, useNavigate } from 'react-router-dom';
 import type { AnnotationColor, AnnotationWithBook } from '@shared/types';
 import { api } from '../api';
 import Sidebar from '../components/Sidebar';
-import { IconMenu, IconSearch } from '../components/Icons';
 import { useToast } from '../components/Toast';
 import {
   ANNOTATION_COLORS, COLOR_HEX, COLOR_LABEL, downloadText, libraryNotesMarkdown, shortDate, type AnnotationKindFilter,
@@ -11,7 +10,6 @@ import {
 import { formatPercent, generatedCoverBackground } from '../lib/format';
 import { useAsync, useDebounced } from '../lib/hooks';
 import { useOnSynced } from '../lib/sync';
-import { useDesignSystem } from '../design/designSystem';
 import StudioFrame from '../design/studio/Frame';
 
 type Sort = 'recent' | 'book';
@@ -36,7 +34,6 @@ export default function NotesPage() {
   const [color, setColor] = useState<AnnotationColor | ''>('');
   const [sort, setSort] = useState<Sort>('recent');
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const studio = useDesignSystem() === 'studio';
 
   const shelves = useAsync(() => api.listShelves(), []);
   const stats = useAsync(() => api.stats(), []);
@@ -132,136 +129,59 @@ export default function NotesPage() {
     toast(`Exported ${list.length} ${list.length === 1 ? 'note' : 'notes'}`);
   };
 
-  if (studio) {
-    return (
-      <StudioFrame
-        active="notes"
-        search={{ value: q, onChange: setQ, placeholder: 'Search notes' }}
-        onChanged={reload}
-        onMenu={() => setDrawerOpen(true)}
-        refreshKey={total.data}
-        sidebar={
-          <Sidebar
-            shelves={shelves.data ?? []}
-            stats={stats.data}
-            activeNotes
-            open={drawerOpen}
-            onClose={closeDrawer}
-            onChanged={reload}
-          />
-        }
-        statusLeft={`${everything} ${everything === 1 ? 'note or highlight' : 'notes and highlights'} · ${booksCount} ${booksCount === 1 ? 'book' : 'books'}`}
-        hints={[['/', 'search'], ['?', 'shortcuts']]}
-      >
-        <main className="st-main">
-          <div className="st-head">
-            <h1>Notes</h1>
-            {total.data && (
-              <span className="st-sub">
-                {everything} {everything === 1 ? 'note or highlight' : 'notes and highlights'} in {booksCount} {booksCount === 1 ? 'book' : 'books'}
-              </span>
-            )}
-            <div className="st-pills">
-              {KINDS.map(([k, label]) => (
-                <button key={k} className={`st-pill${kind === k ? ' on' : ''}`} aria-pressed={kind === k} onClick={() => setKind(k)}>{label}</button>
-              ))}
-              <span className="st-swatches" role="group" aria-label="Color">
-                {ANNOTATION_COLORS.map((c) => (
-                  <button
-                    key={c}
-                    className={`st-swatch${color === c ? ' on' : ''}`}
-                    style={{ ['--c' as string]: COLOR_HEX[c] } as CSSProperties}
-                    aria-label={`${COLOR_LABEL[c]} only`}
-                    aria-pressed={color === c}
-                    onClick={() => setColor(color === c ? '' : c)}
-                  />
-                ))}
-              </span>
-              <select className="st-pill st-select" aria-label="Sort notes" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-                <option value="recent">Recent first</option>
-                <option value="book">By book</option>
-              </select>
-              <button className="st-btn primary" style={{ height: 32 }} disabled={list.length === 0} onClick={exportMd}>Export Markdown</button>
-            </div>
-          </div>
-          {content}
-        </main>
-      </StudioFrame>
-    );
-  }
-
   return (
-    <div className="app-shell">
-      <Sidebar
-        shelves={shelves.data ?? []}
-        stats={stats.data}
-        activeNotes
-        open={drawerOpen}
-        onClose={closeDrawer}
-        onChanged={reload}
-      />
-      <main className="main">
-        <header className="toolbar">
-          <button className="icon-btn menu-toggle" aria-label="Open sidebar" onClick={() => setDrawerOpen(true)}>
-            <IconMenu />
-          </button>
-          <div className="notes-title">
-            <h1 className="page-title">Notes</h1>
-            {total.data && (
-              <p className="muted small">
-                {everything} {everything === 1 ? 'note or highlight' : 'notes and highlights'} in {booksCount} {booksCount === 1 ? 'book' : 'books'}
-              </p>
-            )}
-          </div>
-          <button
-            className="btn"
-            disabled={list.length === 0}
-            onClick={() => {
-              downloadText('Readloft notes.md', libraryNotesMarkdown(list));
-              toast(`Exported ${list.length} ${list.length === 1 ? 'note' : 'notes'}`);
-            }}
-          >
-            Export Markdown
-          </button>
-        </header>
-        <div className="toolbar notes-filters">
-          <div className="search">
-            <IconSearch size={16} />
-            <input
-              type="search"
-              placeholder="Search notes"
-              aria-label="Search notes"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-          <div className="segmented" role="group" aria-label="Kind">
+    <StudioFrame
+      active="notes"
+      search={{ value: q, onChange: setQ, placeholder: 'Search notes' }}
+      onChanged={reload}
+      onMenu={() => setDrawerOpen(true)}
+      refreshKey={total.data}
+      sidebar={
+        <Sidebar
+          shelves={shelves.data ?? []}
+          stats={stats.data}
+          activeNotes
+          open={drawerOpen}
+          onClose={closeDrawer}
+          onChanged={reload}
+        />
+      }
+      statusLeft={`${everything} ${everything === 1 ? 'note or highlight' : 'notes and highlights'} · ${booksCount} ${booksCount === 1 ? 'book' : 'books'}`}
+      hints={[['/', 'search'], ['?', 'shortcuts']]}
+    >
+      <main className="st-main">
+        <div className="st-head">
+          <h1>Notes</h1>
+          {total.data && (
+            <span className="st-sub">
+              {everything} {everything === 1 ? 'note or highlight' : 'notes and highlights'} in {booksCount} {booksCount === 1 ? 'book' : 'books'}
+            </span>
+          )}
+          <div className="st-pills">
             {KINDS.map(([k, label]) => (
-              <button key={k} className={kind === k ? 'active' : ''} aria-pressed={kind === k} onClick={() => setKind(k)}>{label}</button>
+              <button key={k} className={`st-pill${kind === k ? ' on' : ''}`} aria-pressed={kind === k} onClick={() => setKind(k)}>{label}</button>
             ))}
+            <span className="st-swatches" role="group" aria-label="Color">
+              {ANNOTATION_COLORS.map((c) => (
+                <button
+                  key={c}
+                  className={`st-swatch${color === c ? ' on' : ''}`}
+                  style={{ ['--c' as string]: COLOR_HEX[c] } as CSSProperties}
+                  aria-label={`${COLOR_LABEL[c]} only`}
+                  aria-pressed={color === c}
+                  onClick={() => setColor(color === c ? '' : c)}
+                />
+              ))}
+            </span>
+            <select className="st-pill st-select" aria-label="Sort notes" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
+              <option value="recent">Recent first</option>
+              <option value="book">By book</option>
+            </select>
+            <button className="st-btn primary" style={{ height: 32 }} disabled={list.length === 0} onClick={exportMd}>Export Markdown</button>
           </div>
-          <div className="notes-colors" role="group" aria-label="Color">
-            {ANNOTATION_COLORS.map((c) => (
-              <button
-                key={c}
-                className={`ann-dot${color === c ? ' active' : ''}`}
-                style={{ ['--c' as string]: COLOR_HEX[c] } as CSSProperties}
-                aria-label={`${COLOR_LABEL[c]} only`}
-                aria-pressed={color === c}
-                onClick={() => setColor(color === c ? '' : c)}
-              />
-            ))}
-          </div>
-          <select className="select" aria-label="Sort notes" value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
-            <option value="recent">Recent first</option>
-            <option value="book">By book</option>
-          </select>
         </div>
-
-        <div className="content">
-          {content}
-        </div>
+        {content}
       </main>
-    </div>
+    </StudioFrame>
   );
 }

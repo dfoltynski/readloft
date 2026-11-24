@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-ds="studio">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
@@ -10,12 +10,14 @@
     <link rel="apple-touch-icon" href="/icon.svg" />
     <title>Readloft</title>
     <link rel="icon" type="image/svg+xml" href="/icon.svg" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Literata:opsz,wght@7..72,400;7..72,500;7..72,600&display=swap" media="print" onload="this.media='all'" />
     <script>
       // Apply the saved theme before first paint to avoid a flash.
       try {
         var t = localStorage.getItem('data-theme');
         if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
-        document.documentElement.dataset.ds = localStorage.getItem('readloft.designSystem') === 'studio' ? 'studio' : 'classic';
       } catch (e) {}
     </script>
   </head>

@@ -3,7 +3,6 @@ import NightLightControls from '../../components/reader/NightLightControls';
 import { wakeLockSupported } from '../../components/reader/useWakeLock';
 import { formatPercent } from '../../lib/format';
 import { paletteFor, type ReaderFont, type ReaderSettings, type ReaderTheme } from '../../lib/readerSettings';
-import { setDesignSystem } from '../designSystem';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import ContextMenu from '../../components/ContextMenu';
@@ -273,12 +272,6 @@ export function ReaderAside({ settings: s, fixedLayout, onChange, tts }: AsidePr
         </div>
         <Check label="Pause at images & tables" value={s.ttsPauseAtMedia} onChange={(ttsPauseAtMedia) => onChange({ ttsPauseAtMedia })} />
       </div>
-
-      <div className="st-aside-sep">
-        <button type="button" className="st-btn" style={{ width: '100%', justifyContent: 'center' }} onClick={() => setDesignSystem('classic')}>
-          Classic design
-        </button>
-      </div>
     </aside>
   );
 }
@@ -333,7 +326,6 @@ export function ReaderTopChrome({ title, chapter, sync, syncing, onSync, autoHid
             { label: `${autoHide ? '✓ ' : ''}Auto-hide controls`, onSelect: () => onAutoHide(!autoHide) },
             { label: theme === 'dark' ? 'Light theme' : 'Dark theme', onSelect: toggleTheme },
             { label: 'Keyboard shortcuts', onSelect: openShortcuts },
-            { label: 'Classic design', separatorBefore: true, onSelect: () => setDesignSystem('classic') },
           ]}
         />
       )}

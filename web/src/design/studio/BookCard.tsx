@@ -1,6 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom';
 import type { Book } from '@shared/types';
-import { BOOKS_DRAG_TYPE } from '../../components/BookCard';
+import { BOOKS_DRAG_TYPE } from '../../lib/dragTypes';
 import Cover from '../../components/Cover';
 import { IconCheck, IconMore } from '../../components/Icons';
 import { authorLine, formatPercent } from '../../lib/format';

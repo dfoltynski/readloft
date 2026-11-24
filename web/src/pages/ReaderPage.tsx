@@ -3,7 +3,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Book, Bookmark } from '@shared/types';
 import { api, fileUrl } from '../api';
-import { IconBack, IconClose, IconSettings, IconToc } from '../components/Icons';
+import { IconClose } from '../components/Icons';
 import NightLightOverlay from '../components/NightLightOverlay';
 import HelpOverlay from '../components/reader/HelpOverlay';
 import ContextMenu, { type MenuItem } from '../components/ContextMenu';
@@ -12,19 +12,14 @@ import { Composer, HoverTip, PeekCard, SelectionToolbar } from '../components/re
 import { useAnnotations, type AnnotationsApi, type SelInfo } from '../components/reader/useAnnotations';
 import ReadAloudBar from '../components/reader/ReadAloudBar';
 import { useReadAloud } from '../components/reader/useReadAloud';
-import { IconBookmark, IconFullscreen, IconNightLight, IconSpeaker } from '../components/reader/ReaderIcons';
 import { findBookmarkOnPage, pageStart, type CfiModule } from '../components/reader/bookmarkUtils';
 import { useBookSearch } from '../components/reader/useBookSearch';
 import { useWakeLock } from '../components/reader/useWakeLock';
-import ReaderSettingsPanel from '../components/ReaderSettingsPanel';
 import TocPanel, { type PanelTab } from '../components/TocPanel';
-import { useNightLight } from '../lib/nightLight';
 import '../reader.css';
 import { formatBytes, formatPercent } from '../lib/format';
-import { useDesignSystem } from '../design/designSystem';
 import { ReaderAside, ReaderDock, ReaderTopChrome } from '../design/studio/ReaderChrome';
 import { useOnSynced, useSyncStatus } from '../lib/sync';
-import { useDismiss } from '../lib/hooks';
 import {
   buildBookCss, loadSettings, paletteFor, resolveTheme, saveSettings, type ReaderSettings,
 } from '../lib/readerSettings';
@@ -45,13 +40,6 @@ interface Position {
 /** Minimal shape of foliate's FootnoteHandler (footnotes.js). */
 interface FootnoteHandlerLike extends EventTarget {
   handle(book: unknown, e: Event): Promise<void> | undefined;
-}
-
-function formatMinutes(min: number): string {
-  const m = Math.round(min);
-  if (m < 1) return '<1 min';
-  if (m < 60) return `${m} min`;
-  return `${Math.floor(m / 60)} h ${m % 60} min`;
 }
 
 const FOLIATE_VIEW_URL = '/foliate-js/view.js';
@@ -123,11 +111,9 @@ export default function ReaderPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const [params, setParams] = useSearchParams();
-  const studio = useDesignSystem() === 'studio';
 
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<FoliateView | null>(null);
-  const settingsRef = useRef<HTMLDivElement>(null);
   const footnoteHostRef = useRef<HTMLDivElement>(null);
   const footnoteViewRef = useRef<FoliateView | null>(null);
   const cfiRef = useRef<CfiModule | null>(null);
@@ -138,13 +124,12 @@ export default function ReaderPage() {
   const [book, setBook] = useState<Book>();
   const [state, setState] = useState<LoadState>({ kind: 'loading' });
   const [toc, setToc] = useState<FoliateTocItem[]>([]);
-  const [ticks, setTicks] = useState<number[]>([]);
   const [rtl, setRtl] = useState(false);
   const [fixedLayout, setFixedLayout] = useState(false);
   const [position, setPosition] = useState<Position>({ fraction: 0, label: '' });
   const [settings, setSettings] = useState<ReaderSettings>(loadSettings);
-  // Studio starts in the reading state (controls hidden) unless auto-hide is off.
-  const [chromeVisible, setChromeVisible] = useState(!(studio && settings.autoHide));
+  // Starts in the reading state (controls hidden) unless auto-hide is off.
+  const [chromeVisible, setChromeVisible] = useState(!settings.autoHide);
   const [tocOpen, setTocOpen] = useState(false);
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [panelTab, setPanelTab] = useState<PanelTab>('contents');
@@ -158,7 +143,6 @@ export default function ReaderPage() {
   // Bumped to re-open the book (fixed-layout books pick their spread mode at open time).
   const [reloadTick, setReloadTick] = useState(0);
   const lastLoc = useRef<{ id: string; cfi: string } | null>(null);
-  const nightLight = useNightLight();
   const getView = useCallback(() => viewRef.current, []);
   const search = useBookSearch(getView);
 
@@ -194,7 +178,6 @@ export default function ReaderPage() {
     addNote: () => {}, toggleNotes: () => {}, togglePages: () => {}, toggleChrome: () => {},
   });
   const annRef = useRef<AnnotationsApi | null>(null);
-  useDismiss(settingsRef, settingsOpen && !studio, () => setSettingsOpen(false));
 
   const ann = useAnnotations({
     bookId: id,
@@ -229,6 +212,16 @@ export default function ReaderPage() {
     }, () => { /* non-fatal */ });
   });
 
+  /** Esc at the bottom of the layers: save the final position, then back to wherever the reader was opened from. */
+  const flushRef = useRef<() => void>(() => {});
+  const leaveReader = () => {
+    flushRef.current();
+    // react-router keeps the in-app history index in history.state; 0 / missing means the reader was the first page.
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate('/');
+  };
+
   const currentBookmark = findBookmarkOnPage(bookmarks, position.cfi, cfiRef.current);
 
   actions.current = {
@@ -236,13 +229,13 @@ export default function ReaderPage() {
       const { position: pos, bookmarks: list } = live.current;
       const existing = findBookmarkOnPage(list, pos.cfi, cfiRef.current);
       if (existing) {
-        if (studio) toast('Bookmark removed');
+        toast('Bookmark removed');
         setBookmarks((bs) => bs.filter((b) => b.id !== existing.id));
         api.deleteBookmark(existing.id).catch(() => setBookmarks((bs) => [...bs, existing]));
       } else if (pos.cfi) {
         const label = `${pos.label || 'Page'} — ${formatPercent(pos.fraction)}`;
         api.createBookmark(id, { location: pageStart(pos.cfi, cfiRef.current), label, progress: pos.fraction })
-          .then((b) => { if (studio) toast('Bookmark added'); setBookmarks((bs) => [...bs, b].sort((a, c) => a.progress - c.progress)); })
+          .then((b) => { toast('Bookmark added'); setBookmarks((bs) => [...bs, b].sort((a, c) => a.progress - c.progress)); })
           .catch(console.error);
       }
     },
@@ -274,17 +267,18 @@ export default function ReaderPage() {
     readAloud: () => tts.toggle(),
     ttsPrev: () => { if (tts.state.status !== 'idle') tts.prev(); },
     ttsNext: () => { if (tts.state.status !== 'idle') tts.next(); },
+    // Layered Esc: one press does one thing, top-most first. Last resort: back to the book list.
     escape: () => {
       const l = live.current;
       if (menu) setMenu(null);
       else if (annRef.current?.escape()) return;
       else if (l.helpOpen) setHelpOpen(false);
-      else if (tts.state.status !== 'idle' && !l.tocOpen) tts.stop();
       else if (l.footnoteOpen) setFootnoteOpen(false);
       else if (l.tocOpen || settingsOpen) closePanels();
-      else if (studio) chromeApi.current.hideNow(true);
+      else if (tts.state.status !== 'idle') tts.stop();
+      else leaveReader();
     },
-    toggleChrome: () => (studio ? chromeApi.current.toggle() : setChromeVisible((v) => !v)),
+    toggleChrome: () => chromeApi.current.toggle(),
   };
 
   useEffect(() => {
@@ -293,24 +287,7 @@ export default function ReaderPage() {
     return () => document.removeEventListener('fullscreenchange', onChange);
   }, []);
 
-  // ---- Chrome auto-hide ----
-  const hideTimer = useRef<number>();
-  const panelOpenRef = useRef(panelOpen);
-  panelOpenRef.current = panelOpen;
-  const poke = useCallback(() => {
-    if (studio) return; // studio has its own reveal rules (see chromeApi)
-    setChromeVisible(true);
-    window.clearTimeout(hideTimer.current);
-    hideTimer.current = window.setTimeout(() => {
-      if (!panelOpenRef.current) setChromeVisible(false);
-    }, CHROME_IDLE_MS);
-  }, [studio]);
-  useEffect(() => {
-    poke();
-    return () => window.clearTimeout(hideTimer.current);
-  }, [poke, panelOpen]);
-
-  // ---- Studio: reading state with auto-hiding controls ----
+  // ---- Reading state with auto-hiding controls ----
   const docsRef = useRef(new Set<Document>());
   const rootRef = useRef<HTMLDivElement>(null);
   const hoverChrome = useRef(false);
@@ -337,7 +314,7 @@ export default function ReaderPage() {
     blocked: () => hoverChrome.current || focusChrome.current || draggingSlider.current || blockedRef.current,
     schedule: () => {
       window.clearTimeout(chromeTimer.current);
-      if (!studio || !autoHideRef.current) return;
+      if (!autoHideRef.current) return;
       chromeTimer.current = window.setTimeout(() => {
         if (!chromeApi.current.blocked()) setChromeVisible(false);
       }, CHROME_IDLE_MS);
@@ -347,7 +324,7 @@ export default function ReaderPage() {
       chromeApi.current.schedule();
     },
     hideNow: (force) => {
-      if (!studio || !autoHideRef.current || !chromeShown.current) return;
+      if (!autoHideRef.current || !chromeShown.current) return;
       if (force) {
         // Esc: drop focus and hover so nothing keeps the controls alive.
         focusChrome.current = false;
@@ -364,7 +341,6 @@ export default function ReaderPage() {
       } else chromeApi.current.show();
     },
     pointerMove: (y) => {
-      if (!studio) return;
       // Cursor: hide after 2.5 s of inactivity, show on movement.
       rootRef.current?.classList.remove('st-cursor-hidden');
       docsRef.current.forEach((d) => { try { d.documentElement.style.removeProperty('cursor'); } catch { /* detached */ } });
@@ -379,7 +355,6 @@ export default function ReaderPage() {
     },
   };
   useEffect(() => {
-    if (!studio) return;
     const onMove = (e: MouseEvent) => chromeApi.current.pointerMove(e.clientY);
     const onUp = () => {
       if (draggingSlider.current) { draggingSlider.current = false; chromeApi.current.schedule(); }
@@ -392,22 +367,21 @@ export default function ReaderPage() {
       window.clearTimeout(chromeTimer.current);
       window.clearTimeout(cursorTimer.current);
     };
-  }, [studio]);
+  }, []);
   // Drawers / menus closing (or the setting changing) restarts the hide timer.
   useEffect(() => {
-    if (!studio) return;
     if (!settings.autoHide) setChromeVisible(true);
     else if (chromeShown.current) chromeApi.current.schedule();
-  }, [studio, overlayOpen, settings.autoHide]);
+  }, [overlayOpen, settings.autoHide]);
   // First time only: explain how to bring the controls back.
   useEffect(() => {
-    if (!studio || state.kind !== 'ready') return;
+    if (state.kind !== 'ready') return;
     try {
       if (localStorage.getItem('readloft.studioHint')) return;
       localStorage.setItem('readloft.studioHint', '1');
     } catch { /* storage unavailable: show once per session */ }
     toast('Move to the top or bottom edge, or click the middle of the page, to show controls', 'info', { duration: 7000 });
-  }, [studio, state.kind]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [state.kind]); // eslint-disable-line react-hooks/exhaustive-deps
   const { status: syncStatus, syncing, syncNow } = useSyncStatus();
 
   // ---- Load the book and mount foliate-view ----
@@ -424,6 +398,7 @@ export default function ReaderPage() {
         pending = null;
       }
     };
+    flushRef.current = flush;
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') flush();
     };
@@ -434,7 +409,7 @@ export default function ReaderPage() {
     };
 
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') return actions.current.escape();
+      if (e.key === 'Escape') return e.repeat ? undefined : actions.current.escape();
       if ((e.metaKey || e.ctrlKey) && !e.altKey && e.key.toLowerCase() === 'f') {
         e.preventDefault();
         return actions.current.openSearch();
@@ -468,13 +443,13 @@ export default function ReaderPage() {
       e.preventDefault();
     };
 
-    /** Left 25% = previous page, right 25% = next, centre toggles the chrome. */
+    /** Left third = previous page, right third = next, centre toggles the chrome. */
     const onTap = (x: number) => {
       const v = viewRef.current;
       if (!v) return;
       const box = containerRef.current?.getBoundingClientRect();
       const ratio = box && box.width > 0 ? (x - box.left) / box.width : x / window.innerWidth;
-      const lo = studio ? 1 / 3 : 0.25;
+      const lo = 1 / 3;
       if (ratio < lo) void v.goLeft();
       else if (ratio > 1 - lo) void v.goRight();
       else actions.current.toggleChrome();
@@ -574,7 +549,6 @@ export default function ReaderPage() {
           const sectionIndex = e.detail.index;
           annRef.current?.attachDoc(doc, sectionIndex);
           doc.addEventListener('keydown', onKey);
-          doc.addEventListener('mousemove', poke);
           docsRef.current.add(doc);
           doc.addEventListener('mousemove', (ev) => {
             const fr = doc.defaultView?.frameElement;
@@ -643,7 +617,6 @@ export default function ReaderPage() {
         setRtl(view.book.dir === 'rtl');
         setFixedLayout(!!view.isFixedLayout);
         setBookLang(view.language?.canonical || (Array.isArray(view.book.metadata?.language) ? String(view.book.metadata.language[0]) : (view.book.metadata?.language as string | undefined)) || undefined);
-        setTicks(view.getSectionFractions());
 
         const resume = lastLoc.current?.id === id ? lastLoc.current.cfi : b.location;
         if (resume) await view.init({ lastLocation: resume });
@@ -670,7 +643,7 @@ export default function ReaderPage() {
       viewRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, poke, reloadTick]);
+  }, [id, reloadTick]);
 
   // Switching One/Two pages re-opens fixed-layout books, resuming at the current page.
   const prevColumns = useRef(settings.columns);
@@ -749,7 +722,7 @@ export default function ReaderPage() {
           bookAuthors={book?.authors ?? []}
           onJumpAnnotation={(a) => {
             void ann.jumpTo(a);
-            if (studio || window.innerWidth < 800) setTocOpen(false);
+            setTocOpen(false);
           }}
           search={search}
           searchFocusToken={searchFocus}
@@ -760,8 +733,7 @@ export default function ReaderPage() {
           }}
           onJumpLocation={(loc) => {
             void view?.goTo(loc);
-            // On narrow screens the panel covers the page; keep it open on desktop to browse hits.
-            if (studio || window.innerWidth < 800) setTocOpen(false);
+            setTocOpen(false);
           }}
           onRenameBookmark={async (bid, label) => {
             const prev = bookmarks.find((b) => b.id === bid);
@@ -793,7 +765,7 @@ export default function ReaderPage() {
           if (footnoteOpen) return setFootnoteOpen(false);
           const box = e.currentTarget.getBoundingClientRect();
           const ratio = box.width > 0 ? (e.clientX - box.left) / box.width : e.clientX / window.innerWidth;
-          const lo = studio ? 1 / 3 : 0.25;
+          const lo = 1 / 3;
           if (ratio < lo) void view?.goLeft();
           else if (ratio > 1 - lo) void view?.goRight();
           else actions.current.toggleChrome();
@@ -830,7 +802,7 @@ export default function ReaderPage() {
         <div ref={footnoteHostRef} className="footnote-host" />
       </div>
 
-      {(tts.state.status !== 'idle' || tts.state.error) && (!studio || chromeVisible || !!tts.state.error) ? (
+      {(tts.state.status !== 'idle' || tts.state.error) && (chromeVisible || !!tts.state.error) ? (
         <ReadAloudBar
           state={tts.state}
           hint={tts.hint}
@@ -907,221 +879,104 @@ export default function ReaderPage() {
     </>
   );
 
-  if (studio) {
-    const view2 = viewRef.current;
-    const ready = state.kind === 'ready';
-    const drawer = tocOpen || settingsOpen;
-    const chromeProps = (kind: 'top' | 'bottom') => ({
-      className: `st-chrome st-chrome-${kind}${chromeVisible || !settings.autoHide ? ' shown' : ''}`,
-      onMouseEnter: () => { hoverChrome.current = true; window.clearTimeout(chromeTimer.current); },
-      onMouseLeave: () => { hoverChrome.current = false; chromeApi.current.schedule(); },
-      onFocus: (e: React.FocusEvent) => {
-        if ((e.target as HTMLElement).matches?.(':focus-visible')) {
-          focusChrome.current = true;
-          setChromeVisible(true);
-          window.clearTimeout(chromeTimer.current);
-        }
-      },
-      onBlur: (e: React.FocusEvent) => {
-        if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
-          focusChrome.current = false;
-          chromeApi.current.schedule();
-        }
-      },
-    });
-    return (
-      <div
-        ref={rootRef}
-        className="reader reader-studio"
-        style={{ ['--book-bg' as string]: palette.bg, ['--book-fg' as string]: palette.fg }}
-        data-book-theme={themeName}
-      >
-        {stageEl}
-        {loadOverlays}
-
-        <div {...chromeProps('top')}>
-          <ReaderTopChrome
-            title={book?.title ?? ''}
-            chapter={position.label}
-            sync={syncStatus}
-            syncing={syncing}
-            onSync={() => { void syncNow().catch((e) => toast((e as Error).message, 'error')); }}
-            autoHide={settings.autoHide}
-            onAutoHide={(autoHide) => patchSettings({ autoHide })}
-          />
-        </div>
-
-        <div className={`st-scrim${drawer ? ' open' : ''}`} onClick={closePanels} aria-hidden="true" />
-        <div className={`st-drawer st-drawer-left${tocOpen ? ' open' : ''}`}>{tocPanel}</div>
-        <div className={`st-drawer st-drawer-right${settingsOpen ? ' open' : ''}`}>
-          <ReaderAside
-            settings={settings}
-            fixedLayout={fixedLayout}
-            onChange={patchSettings}
-            tts={{
-              playing: tts.state.status === 'playing',
-              idle: tts.state.status === 'idle',
-              unavailable: tts.unavailable,
-              voiceName: tts.voice?.name,
-              onToggle: () => actions.current.readAloud(),
-              rate: settings.ttsRate,
-              onRate: tts.setRate,
-            }}
-          />
-        </div>
-
-        <div {...chromeProps('bottom')}>
-          <ReaderDock
-            fraction={position.fraction}
-            rtl={rtl}
-            settings={settings}
-            fixedLayout={fixedLayout}
-            ready={ready}
-            bookmarked={!!currentBookmark}
-            speaking={tts.state.status !== 'idle'}
-            fullscreen={fullscreen}
-            fullscreenSupported={fullscreenSupported}
-            railOpen={tocOpen}
-            asideOpen={settingsOpen}
-            onPrev={() => void view2?.prev()}
-            onNext={() => void view2?.next()}
-            onSeek={(f) => void view2?.goToFraction(f)}
-            onChange={patchSettings}
-            onReadAloud={() => actions.current.readAloud()}
-            onBookmark={() => actions.current.toggleBookmark()}
-            onFullscreen={() => actions.current.toggleFullscreen()}
-            onToggleRail={() => actions.current.toggleToc()}
-            onToggleAside={() => { setTocOpen(false); setSettingsOpen((o) => !o); }}
-            onSliderDrag={(d) => { draggingSlider.current = d; if (!d) chromeApi.current.schedule(); }}
-          />
-        </div>
-
-        {tts.state.status !== 'idle' && !chromeVisible && (
-          <button
-            type="button"
-            className="st-tts-mini"
-            aria-label={tts.state.status === 'playing' ? 'Pause reading aloud (R)' : 'Resume reading aloud (R)'}
-            onClick={() => actions.current.readAloud()}
-          >
-            {tts.state.status === 'playing' ? '❚❚' : '▶'}
-          </button>
-        )}
-        {tail}
-      </div>
-    );
-  }
-
+  const view2 = viewRef.current;
+  const ready = state.kind === 'ready';
+  const drawer = tocOpen || settingsOpen;
+  const chromeProps = (kind: 'top' | 'bottom') => ({
+    className: `st-chrome st-chrome-${kind}${chromeVisible || !settings.autoHide ? ' shown' : ''}`,
+    onMouseEnter: () => { hoverChrome.current = true; window.clearTimeout(chromeTimer.current); },
+    onMouseLeave: () => { hoverChrome.current = false; chromeApi.current.schedule(); },
+    onFocus: (e: React.FocusEvent) => {
+      if ((e.target as HTMLElement).matches?.(':focus-visible')) {
+        focusChrome.current = true;
+        setChromeVisible(true);
+        window.clearTimeout(chromeTimer.current);
+      }
+    },
+    onBlur: (e: React.FocusEvent) => {
+      if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+        focusChrome.current = false;
+        chromeApi.current.schedule();
+      }
+    },
+  });
   return (
     <div
-      className={`reader reader-${themeName}`}
-      style={{ ['--r-bg' as string]: palette.bg, ['--r-fg' as string]: palette.fg }}
-      onMouseMove={poke}
-      onTouchStart={() => {
-        /* taps are handled by click zones; touch keeps chrome from hiding mid-gesture */
-        window.clearTimeout(hideTimer.current);
-      }}
+      ref={rootRef}
+      className="reader reader-studio"
+      style={{ ['--book-bg' as string]: palette.bg, ['--book-fg' as string]: palette.fg }}
+      data-book-theme={themeName}
     >
       {stageEl}
-
       {loadOverlays}
 
-      <header className={`reader-header${chrome ? '' : ' hidden'}`}>
-        <button className="icon-btn" aria-label="Back to book details" onClick={() => navigate(`/book/${id}`)}>
-          <IconBack />
-        </button>
-        <div className="reader-title" title={book?.title}>{book?.title}</div>
+      <div {...chromeProps('top')}>
+        <ReaderTopChrome
+          title={book?.title ?? ''}
+          chapter={position.label}
+          sync={syncStatus}
+          syncing={syncing}
+          onSync={() => { void syncNow().catch((e) => toast((e as Error).message, 'error')); }}
+          autoHide={settings.autoHide}
+          onAutoHide={(autoHide) => patchSettings({ autoHide })}
+        />
+      </div>
+
+      <div className={`st-scrim${drawer ? ' open' : ''}`} onClick={closePanels} aria-hidden="true" />
+      <div className={`st-drawer st-drawer-left${tocOpen ? ' open' : ''}`}>{tocPanel}</div>
+      <div className={`st-drawer st-drawer-right${settingsOpen ? ' open' : ''}`}>
+        <ReaderAside
+          settings={settings}
+          fixedLayout={fixedLayout}
+          onChange={patchSettings}
+          tts={{
+            playing: tts.state.status === 'playing',
+            idle: tts.state.status === 'idle',
+            unavailable: tts.unavailable,
+            voiceName: tts.voice?.name,
+            onToggle: () => actions.current.readAloud(),
+            rate: settings.ttsRate,
+            onRate: tts.setRate,
+          }}
+        />
+      </div>
+
+      <div {...chromeProps('bottom')}>
+        <ReaderDock
+          fraction={position.fraction}
+          rtl={rtl}
+          settings={settings}
+          fixedLayout={fixedLayout}
+          ready={ready}
+          bookmarked={!!currentBookmark}
+          speaking={tts.state.status !== 'idle'}
+          fullscreen={fullscreen}
+          fullscreenSupported={fullscreenSupported}
+          railOpen={tocOpen}
+          asideOpen={settingsOpen}
+          onPrev={() => void view2?.prev()}
+          onNext={() => void view2?.next()}
+          onSeek={(f) => void view2?.goToFraction(f)}
+          onChange={patchSettings}
+          onReadAloud={() => actions.current.readAloud()}
+          onBookmark={() => actions.current.toggleBookmark()}
+          onFullscreen={() => actions.current.toggleFullscreen()}
+          onToggleRail={() => actions.current.toggleToc()}
+          onToggleAside={() => { setTocOpen(false); setSettingsOpen((o) => !o); }}
+          onSliderDrag={(d) => { draggingSlider.current = d; if (!d) chromeApi.current.schedule(); }}
+        />
+      </div>
+
+      {tts.state.status !== 'idle' && !chromeVisible && (
         <button
-          className="icon-btn"
-          aria-label={currentBookmark ? 'Remove bookmark (B)' : 'Add bookmark (B)'}
-          aria-pressed={!!currentBookmark}
-          onClick={() => actions.current.toggleBookmark()}
-        >
-          <IconBookmark filled={!!currentBookmark} />
-        </button>
-        <button
-          className="icon-btn"
-          aria-label="Blue light filter"
-          aria-pressed={nightLight.settings.mode !== 'off'}
-          onClick={nightLight.toggle}
-        >
-          <IconNightLight active={nightLight.settings.mode !== 'off'} />
-        </button>
-        <button
-          className="icon-btn"
-          aria-label={tts.state.status === 'idle' ? 'Read aloud (R)' : 'Pause / resume reading (R)'}
-          aria-pressed={tts.state.status !== 'idle'}
-          aria-disabled={!!tts.unavailable}
+          type="button"
+          className="st-tts-mini"
+          aria-label={tts.state.status === 'playing' ? 'Pause reading aloud (R)' : 'Resume reading aloud (R)'}
           onClick={() => actions.current.readAloud()}
         >
-          <IconSpeaker />
+          {tts.state.status === 'playing' ? '❚❚' : '▶'}
         </button>
-        {fullscreenSupported && (
-          <button
-            className="icon-btn"
-            aria-label={fullscreen ? 'Exit fullscreen (F)' : 'Fullscreen (F)'}
-            onClick={() => actions.current.toggleFullscreen()}
-          >
-            <IconFullscreen exit={fullscreen} />
-          </button>
-        )}
-        <button
-          className="icon-btn"
-          aria-label="Contents, bookmarks, notes and search (T)"
-          aria-expanded={tocOpen}
-          onClick={() => actions.current.toggleToc()}
-        >
-          <IconToc />
-        </button>
-        <div ref={settingsRef} className="popover-anchor">
-          <button
-            className="icon-btn"
-            aria-label="Reader settings"
-            aria-expanded={settingsOpen}
-            onClick={() => {
-              setTocOpen(false);
-              setSettingsOpen((o) => !o);
-            }}
-          >
-            <IconSettings />
-          </button>
-          {settingsOpen && (
-            <ReaderSettingsPanel settings={settings} fixedLayout={fixedLayout} onChange={patchSettings} />
-          )}
-        </div>
-      </header>
-
-      {tocOpen && tocPanel}
-
-      <footer className={`reader-footer${chrome && state.kind === 'ready' ? '' : ' hidden'}`}>
-        <div className="reader-footer-info">
-          <span className="reader-chapter">{position.label}</span>
-          <span>
-            {position.loc ? `${position.loc} · ` : ''}
-            {formatPercent(position.fraction)}
-          </span>
-        </div>
-        {!fixedLayout && position.time && (
-          <div className="reader-time">
-            {formatMinutes(position.time.section)} left in chapter · {formatMinutes(position.time.total)} left in book
-          </div>
-        )}
-        <input
-          className="reader-slider"
-          type="range"
-          min={0}
-          max={1}
-          step="any"
-          dir={rtl ? 'rtl' : 'ltr'}
-          list="reader-ticks"
-          aria-label="Reading progress"
-          value={position.fraction}
-          onChange={(e) => void view?.goToFraction(Number(e.target.value))}
-        />
-        <datalist id="reader-ticks">
-          {ticks.map((t) => <option key={t} value={t} />)}
-        </datalist>
-      </footer>
-
+      )}
       {tail}
     </div>
   );

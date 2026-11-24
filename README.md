@@ -199,7 +199,7 @@ Press `?` anywhere for the full cheatsheet (source: `web/src/lib/shortcuts.ts`).
 | Navigation | `T` table of contents, `B` toggle bookmark, `Ctrl/Cmd+F` search in book |
 | Notes | `N` add note to selection, `A` notes panel, `Esc` close note cards |
 | Read aloud | `R` start / pause / resume, `[` `]` previous / next sentence |
-| General | `?` this help, `Esc` close panels / stop reading aloud |
+| General | `?` this help, `Esc` close panel, stop reading aloud, or back to library |
 
 ## Sync between devices
 

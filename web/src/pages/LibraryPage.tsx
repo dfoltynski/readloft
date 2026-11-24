@@ -2,11 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Book, BookStatus } from '@shared/types';
 import { api, uploadFiles, type BookSort } from '../api';
-import BookCard, { BOOKS_DRAG_TYPE } from '../components/BookCard';
+import { BOOKS_DRAG_TYPE } from '../lib/dragTypes';
 import ContextMenu, { type MenuItem } from '../components/ContextMenu';
 import Cover from '../components/Cover';
 import DeleteBookDialog from '../components/DeleteBookDialog';
-import { IconClose, IconGrid, IconList, IconMenu, IconSearch, IconUpload } from '../components/Icons';
+import { IconClose } from '../components/Icons';
 import Sidebar from '../components/Sidebar';
 import { useLibraryShortcuts, useSelectionShortcuts, useScrollRestore } from '../lib/libraryHooks';
 import { ensurePdfCovers } from '../lib/pdfCover';
@@ -15,7 +15,6 @@ import UploadOverlay from '../components/UploadOverlay';
 import { authorLine, formatPercent } from '../lib/format';
 import { useAsync, useDebounced, useLocalStorage } from '../lib/hooks';
 import { useOnSynced } from '../lib/sync';
-import { useDesignSystem } from '../design/designSystem';
 import StudioFrame from '../design/studio/Frame';
 import StudioBookCard from '../design/studio/BookCard';
 import Inspector from '../design/studio/Inspector';
@@ -71,7 +70,6 @@ export default function LibraryPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
-  const studio = useDesignSystem() === 'studio';
   const [inspectedId, setInspectedId] = useState<string | null>(null);
   const inspectorHidden = useMediaQuery('(max-width: 1180px)');
 
@@ -425,243 +423,116 @@ export default function LibraryPage() {
     </div>
   ) : null;
 
-  if (studio) {
-    const total = stats.data?.total;
-    const pills: [BookStatus | undefined, string][] = [[undefined, 'All'], ['reading', 'Reading'], ['unread', 'Unread'], ['finished', 'Finished']];
-    return (
-      <StudioFrame
-        active="library"
-        search={searchProps}
-        onUpload={openUpload}
-        onChanged={reloadAll}
-        onMenu={() => setDrawerOpen(true)}
-        refreshKey={books.data}
-        sidebar={
-          <Sidebar
-            shelves={shelves.data ?? []}
-            stats={stats.data}
-            activeShelfId={shelfId}
-            activeStatus={status}
-            open={drawerOpen}
-            onClose={closeDrawer}
-            onChanged={reloadAll}
-          />
-        }
-        inspector={inspectorHidden ? undefined : (
-          <Inspector
-            book={inspected}
-            notes={inspected ? noteCounts.byBook.get(inspected.id) ?? 0 : 0}
-            shelves={shelves.data ?? []}
-            onChanged={reloadAll}
-          />
-        )}
-        statusLeft={selected.size > 0
-          ? `${selected.size} selected · ${list.length} shown`
-          : `${list.length}${total !== undefined && total !== list.length ? ` of ${total}` : ''} ${list.length === 1 ? 'book' : 'books'}${urlQuery ? ` matching “${urlQuery}”` : ''} · ${title}`}
-        hints={LIBRARY_HINTS}
-        overlays={<>{overlays}{uploadInput}</>}
-      >
-        <main className="st-main" ref={contentRef}>
-          {books.error && <div className="notice notice-error">Could not load books: {books.error.message}</div>}
-          <div className="st-head">
-            <h1>{title}</h1>
-            {!books.loading && <span className="st-sub">{list.length} {list.length === 1 ? 'book' : 'books'}{activeShelf?.folder ? ` · ${activeShelf.folder}` : ''}</span>}
-            <div className="st-pills">
-              {pills.map(([st, label]) => (
-                <button key={label} className={`st-pill${status === st ? ' on' : ''}`} aria-pressed={status === st} onClick={() => setStatusFilter(st)}>
-                  {label}
-                </button>
-              ))}
-              <select className="st-pill st-select" aria-label="Sort books" value={sort} onChange={(e) => setSort(e.target.value as BookSort)}>
-                {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-              <div className="st-viewtoggle" role="group" aria-label="View">
-                <button className={view === 'grid' ? 'on' : ''} aria-label="Grid view" aria-pressed={view === 'grid'} onClick={() => setView('grid')}><SIcon.Grid /></button>
-                <button className={view === 'list' ? 'on' : ''} aria-label="List view" aria-pressed={view === 'list'} onClick={() => setView('list')}><SIcon.List /></button>
-              </div>
-            </div>
-          </div>
-
-          {continueReading.length > 0 && (
-            <section aria-labelledby="st-continue-h">
-              <div className="st-section-title" id="st-continue-h">Continue reading <span>pick up where you left off</span></div>
-              <div className="st-continue">
-                {continueReading.map((b) => (
-                  <div key={b.id} className="st-cont-wrap">
-                    <Link to={`/read/${b.id}`} className="st-cont" aria-label={`Continue reading ${b.title}`}>
-                      <div className="st-mini"><Cover book={b} /></div>
-                      <div className="st-cont-body">
-                        <div className="st-cont-title">{b.title}</div>
-                        <div className="st-muted st-ellipsis">{authorLine(b) || 'Unknown author'}</div>
-                        <div className="st-bar" style={{ marginTop: 10 }}><i style={{ width: formatPercent(b.progress) }} /></div>
-                        <div className="st-cont-meta"><span>{formatPercent(b.progress)}</span><span>{formatRelative(b.lastOpenedAt)}</span></div>
-                      </div>
-                    </Link>
-                    <button
-                      type="button"
-                      className="st-cont-remove"
-                      aria-label={`Remove ${b.title} from Currently Reading`}
-                      onClick={() => attempt(() => api.patchBook(b.id, { status: 'unread' }))}
-                    >
-                      <SIcon.Close />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <div className="st-section-title">Library <span>{list.length} {list.length === 1 ? 'book' : 'books'}</span></div>
-            </section>
-          )}
-
-          {emptyState ?? (
-            <div className={view === 'grid' ? 'st-grid' : 'st-list'}>
-              {list.map((b) => (
-                <StudioBookCard
-                  key={b.id}
-                  book={b}
-                  view={view}
-                  notes={noteCounts.byBook.get(b.id) ?? 0}
-                  inspected={!inspectorHidden && inspected?.id === b.id}
-                  openOnClick={inspectorHidden}
-                  onInspect={(book) => setInspectedId(book.id)}
-                  onMenu={(book, x, y) => setMenu({ book, x, y })}
-                  selected={selected.has(b.id)}
-                  selectionActive={selected.size > 0}
-                  onSelect={onSelect}
-                  getDragIds={getDragIds}
-                  dragging={!!draggingIds?.includes(b.id)}
-                  onDragChange={setDraggingIds}
-                />
-              ))}
-            </div>
-          )}
-          {selectionBar}
-        </main>
-      </StudioFrame>
-    );
-  }
-
+  const total = stats.data?.total;
+  const pills: [BookStatus | undefined, string][] = [[undefined, 'All'], ['reading', 'Reading'], ['unread', 'Unread'], ['finished', 'Finished']];
   return (
-    <div className="app-shell">
-      <Sidebar
-        shelves={shelves.data ?? []}
-        stats={stats.data}
-        activeShelfId={shelfId}
-        activeStatus={status}
-        open={drawerOpen}
-        onClose={closeDrawer}
-        onChanged={reloadAll}
-      />
-
-      <main className="main">
-        <header className="toolbar">
-          <button className="icon-btn menu-toggle" aria-label="Open sidebar" onClick={() => setDrawerOpen(true)}>
-            <IconMenu />
-          </button>
-          <h1 className="page-title">
-            {title}
-            {!books.loading && <span className="page-count">{list.length} {list.length === 1 ? 'book' : 'books'}</span>}
-          </h1>
-          <div className="search">
-            <IconSearch size={16} />
-            <input
-              ref={searchInput}
-              type="search"
-              placeholder="Search ( / )"
-              aria-label="Search books"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === 'Escape') clearSearch();
-              }}
-            />
-          </div>
-          <select className="select" aria-label="Sort books" value={sort} onChange={(e) => setSort(e.target.value as BookSort)}>
-            {SORTS.map((s) => (
-              <option key={s.value} value={s.value}>
-                {s.label}
-              </option>
+    <StudioFrame
+      active="library"
+      search={searchProps}
+      onUpload={openUpload}
+      onChanged={reloadAll}
+      onMenu={() => setDrawerOpen(true)}
+      refreshKey={books.data}
+      sidebar={
+        <Sidebar
+          shelves={shelves.data ?? []}
+          stats={stats.data}
+          activeShelfId={shelfId}
+          activeStatus={status}
+          open={drawerOpen}
+          onClose={closeDrawer}
+          onChanged={reloadAll}
+        />
+      }
+      inspector={inspectorHidden ? undefined : (
+        <Inspector
+          book={inspected}
+          notes={inspected ? noteCounts.byBook.get(inspected.id) ?? 0 : 0}
+          shelves={shelves.data ?? []}
+          onChanged={reloadAll}
+        />
+      )}
+      statusLeft={selected.size > 0
+        ? `${selected.size} selected · ${list.length} shown`
+        : `${list.length}${total !== undefined && total !== list.length ? ` of ${total}` : ''} ${list.length === 1 ? 'book' : 'books'}${urlQuery ? ` matching “${urlQuery}”` : ''} · ${title}`}
+      hints={LIBRARY_HINTS}
+      overlays={<>{overlays}{uploadInput}</>}
+    >
+      <main className="st-main" ref={contentRef}>
+        {books.error && <div className="notice notice-error">Could not load books: {books.error.message}</div>}
+        <div className="st-head">
+          <h1>{title}</h1>
+          {!books.loading && <span className="st-sub">{list.length} {list.length === 1 ? 'book' : 'books'}{activeShelf?.folder ? ` · ${activeShelf.folder}` : ''}</span>}
+          <div className="st-pills">
+            {pills.map(([st, label]) => (
+              <button key={label} className={`st-pill${status === st ? ' on' : ''}`} aria-pressed={status === st} onClick={() => setStatusFilter(st)}>
+                {label}
+              </button>
             ))}
-          </select>
-          <div className="segmented" role="group" aria-label="View">
-            <button
-              className={view === 'grid' ? 'active' : ''}
-              aria-label="Grid view"
-              aria-pressed={view === 'grid'}
-              onClick={() => setView('grid')}
-            >
-              <IconGrid size={16} />
-            </button>
-            <button
-              className={view === 'list' ? 'active' : ''}
-              aria-label="List view"
-              aria-pressed={view === 'list'}
-              onClick={() => setView('list')}
-            >
-              <IconList size={16} />
-            </button>
-          </div>
-          <label className="btn btn-primary upload-btn">
-            <IconUpload size={16} /> <span>Upload</span>
-            {uploadInput}
-          </label>
-        </header>
-
-        <div className={`content${selected.size > 0 ? ' has-selection-bar' : ''}`} ref={contentRef}>
-          {books.error && <div className="notice notice-error">Could not load books: {books.error.message}</div>}
-
-          {continueReading.length > 0 && (
-            <section aria-labelledby="continue-h" className="continue">
-              <h2 id="continue-h" className="section-title">Continue reading</h2>
-              <div className="continue-row">
-                {continueReading.map((b) => (
-                  <div key={b.id} className="continue-wrap">
-                    <Link to={`/read/${b.id}`} className="continue-card" aria-label={`Continue reading ${b.title}`}>
-                      <Cover book={b} />
-                      <div className="cover-progress" aria-hidden="true">
-                        <div style={{ width: formatPercent(b.progress) }} />
-                      </div>
-                      <div className="book-title">{b.title}</div>
-                      <div className="book-author">{authorLine(b)}</div>
-                    </Link>
-                    <button
-                      type="button"
-                      className="continue-remove"
-                      aria-label={`Remove ${b.title} from Currently Reading`}
-                      onClick={() => attempt(() => api.patchBook(b.id, { status: 'unread' }))}
-                    >
-                      <IconClose size={14} />
-                    </button>
-                  </div>
-                ))}
-              </div>
-              <h2 className="section-title">Library</h2>
-            </section>
-          )}
-
-          {emptyState ?? (
-            <div className={view === 'grid' ? 'book-grid' : 'book-list'}>
-              {list.map((b) => (
-                <BookCard
-                  key={b.id}
-                  book={b}
-                  view={view}
-                  onMenu={(book, x, y) => setMenu({ book, x, y })}
-                  selected={selected.has(b.id)}
-                  selectionActive={selected.size > 0}
-                  onSelect={onSelect}
-                  getDragIds={getDragIds}
-                  dragging={!!draggingIds?.includes(b.id)}
-                  onDragChange={setDraggingIds}
-                />
-              ))}
+            <select className="st-pill st-select" aria-label="Sort books" value={sort} onChange={(e) => setSort(e.target.value as BookSort)}>
+              {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            </select>
+            <div className="st-viewtoggle" role="group" aria-label="View">
+              <button className={view === 'grid' ? 'on' : ''} aria-label="Grid view" aria-pressed={view === 'grid'} onClick={() => setView('grid')}><SIcon.Grid /></button>
+              <button className={view === 'list' ? 'on' : ''} aria-label="List view" aria-pressed={view === 'list'} onClick={() => setView('list')}><SIcon.List /></button>
             </div>
-          )}
+          </div>
         </div>
 
+        {continueReading.length > 0 && (
+          <section aria-labelledby="st-continue-h">
+            <div className="st-section-title" id="st-continue-h">Continue reading <span>pick up where you left off</span></div>
+            <div className="st-continue">
+              {continueReading.map((b) => (
+                <div key={b.id} className="st-cont-wrap">
+                  <Link to={`/read/${b.id}`} className="st-cont" aria-label={`Continue reading ${b.title}`}>
+                    <div className="st-mini"><Cover book={b} /></div>
+                    <div className="st-cont-body">
+                      <div className="st-cont-title">{b.title}</div>
+                      <div className="st-muted st-ellipsis">{authorLine(b) || 'Unknown author'}</div>
+                      <div className="st-bar" style={{ marginTop: 10 }}><i style={{ width: formatPercent(b.progress) }} /></div>
+                      <div className="st-cont-meta"><span>{formatPercent(b.progress)}</span><span>{formatRelative(b.lastOpenedAt)}</span></div>
+                    </div>
+                  </Link>
+                  <button
+                    type="button"
+                    className="st-cont-remove"
+                    aria-label={`Remove ${b.title} from Currently Reading`}
+                    onClick={() => attempt(() => api.patchBook(b.id, { status: 'unread' }))}
+                  >
+                    <SIcon.Close />
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div className="st-section-title">Library <span>{list.length} {list.length === 1 ? 'book' : 'books'}</span></div>
+          </section>
+        )}
+
+        {emptyState ?? (
+          <div className={view === 'grid' ? 'st-grid' : 'st-list'}>
+            {list.map((b) => (
+              <StudioBookCard
+                key={b.id}
+                book={b}
+                view={view}
+                notes={noteCounts.byBook.get(b.id) ?? 0}
+                inspected={!inspectorHidden && inspected?.id === b.id}
+                openOnClick={inspectorHidden}
+                onInspect={(book) => setInspectedId(book.id)}
+                onMenu={(book, x, y) => setMenu({ book, x, y })}
+                selected={selected.has(b.id)}
+                selectionActive={selected.size > 0}
+                onSelect={onSelect}
+                getDragIds={getDragIds}
+                dragging={!!draggingIds?.includes(b.id)}
+                onDragChange={setDraggingIds}
+              />
+            ))}
+          </div>
+        )}
         {selectionBar}
       </main>
-
-      {overlays}
-    </div>
+    </StudioFrame>
   );
 }

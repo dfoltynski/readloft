@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import type { Book, BookPatch, BookStatus } from '@shared/types';
+import type { Book, BookPatch } from '@shared/types';
 import { api, fileUrl } from '../api';
 import Cover from '../components/Cover';
 import DeleteBookDialog from '../components/DeleteBookDialog';
@@ -9,7 +9,6 @@ import { useToast } from '../components/Toast';
 import { authorLine, formatBytes, formatDate, formatPercent, formatRelative, seriesLine, splitParagraphs } from '../lib/format';
 import { useAsync } from '../lib/hooks';
 import { useOnSynced } from '../lib/sync';
-import { useDesignSystem } from '../design/designSystem';
 import StudioFrame from '../design/studio/Frame';
 import StatusSeg from '../design/studio/StatusSeg';
 
@@ -21,7 +20,6 @@ export default function BookPage() {
   const avail = useAsync(() => api.getAvailability(id).catch(() => null), [id]);
   const shelves = useAsync(() => api.listShelves(), []);
   const notes = useAsync(() => api.listAnnotations(id).catch(() => []), [id]);
-  const studio = useDesignSystem() === 'studio';
   useOnSynced(() => { book.reload(); notes.reload(); });
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
@@ -154,20 +152,7 @@ export default function BookPage() {
 
           <div className="detail-section">
             <label className="field-label" htmlFor="status">Status</label>
-            {studio ? (
-              <StatusSeg value={b.status} onChange={(status) => void guard(() => api.patchBook(b.id, { status }))} />
-            ) : (
-              <select
-                id="status"
-                className="select"
-                value={b.status}
-                onChange={(e) => guard(() => api.patchBook(b.id, { status: e.target.value as BookStatus }))}
-              >
-                <option value="unread">Unread</option>
-                <option value="reading">Reading</option>
-                <option value="finished">Finished</option>
-              </select>
-            )}
+            <StatusSeg value={b.status} onChange={(status) => void guard(() => api.patchBook(b.id, { status }))} />
           </div>
 
           <div className="detail-section">
@@ -222,7 +207,6 @@ export default function BookPage() {
     </div>
   );
 
-  if (!studio) return page;
   return (
     <StudioFrame
       active="none"

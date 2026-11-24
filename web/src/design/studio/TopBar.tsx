@@ -7,7 +7,6 @@ import { formatRelative } from '../../lib/format';
 import { useAsync, useTheme } from '../../lib/hooks';
 import { openShortcuts } from '../../lib/shortcuts';
 import { useOnSynced, useSyncStatus } from '../../lib/sync';
-import { setDesignSystem } from '../designSystem';
 import { useNoteCounts } from './hooks';
 import { LogoTile, SIcon } from './icons';
 
@@ -165,7 +164,6 @@ export default function StudioTopBar({ active, search, onUpload, onChanged, onMe
           items={[
             { label: theme === 'dark' ? 'Light theme' : 'Dark theme', onSelect: toggleTheme },
             { label: 'Keyboard shortcuts', onSelect: openShortcuts },
-            { label: 'Classic design', separatorBefore: true, onSelect: () => setDesignSystem('classic') },
           ]}
         />
       )}
