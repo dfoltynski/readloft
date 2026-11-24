@@ -14,6 +14,15 @@ import { useToast } from '../components/Toast';
 import UploadOverlay from '../components/UploadOverlay';
 import { authorLine, formatPercent } from '../lib/format';
 import { useAsync, useDebounced, useLocalStorage } from '../lib/hooks';
+import { useOnSynced } from '../lib/sync';
+import { useDesignSystem } from '../design/designSystem';
+import StudioFrame from '../design/studio/Frame';
+import StudioBookCard from '../design/studio/BookCard';
+import Inspector from '../design/studio/Inspector';
+import { useMediaQuery, useNoteCounts } from '../design/studio/hooks';
+import { SIcon } from '../design/studio/icons';
+import { LIBRARY_HINTS } from '../design/studio/StatusBar';
+import { formatRelative } from '../lib/format';
 
 const SORTS: { value: BookSort; label: string }[] = [
   { value: 'added', label: 'Recently added' },
@@ -62,6 +71,9 @@ export default function LibraryPage() {
   const fileInput = useRef<HTMLInputElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
   const location = useLocation();
+  const studio = useDesignSystem() === 'studio';
+  const [inspectedId, setInspectedId] = useState<string | null>(null);
+  const inspectorHidden = useMediaQuery('(max-width: 1180px)');
 
   // Keep the URL's ?q= in sync with the debounced search box.
   useEffect(() => {
@@ -91,6 +103,8 @@ export default function LibraryPage() {
     stats.reload();
     reading.reload();
   }, [books.reload, shelves.reload, stats.reload, reading.reload]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  useOnSynced(reloadAll);
 
   // Pick up changes merged from other devices while the page is visible.
   useEffect(() => {
@@ -312,6 +326,220 @@ export default function LibraryPage() {
   };
   const showEmptyLibrary = !books.loading && list.length === 0 && !urlQuery && !shelfId && !status;
 
+  const noteCounts = useNoteCounts();
+  const inspected = list.find((b) => b.id === inspectedId) ?? list[0];
+
+  const searchProps = { value: search, onChange: setSearch, inputRef: searchInput, placeholder: 'Search books, authors…' };
+  const setStatusFilter = (st: BookStatus | undefined) =>
+    setParams((p) => {
+      const next = new URLSearchParams(p);
+      if (st) next.set('status', st);
+      else next.delete('status');
+      return next;
+    });
+
+  const overlays = (
+    <>
+      {shelfMenu && (
+        <ContextMenu
+          x={shelfMenu.x}
+          y={shelfMenu.y}
+          onClose={() => setShelfMenu(null)}
+          items={[
+            ...manualShelves.map((sh) => ({ label: sh.name, onSelect: () => addSelectedToShelf(sh.id, sh.name) })),
+            { label: 'New shelf…', separatorBefore: manualShelves.length > 0, onSelect: addSelectedToNewShelf },
+          ]}
+        />
+      )}
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.book)} onClose={() => setMenu(null)} />}
+      {toDelete && (
+        <DeleteBookDialog
+          book={toDelete}
+          onCancel={() => setToDelete(null)}
+          onConfirm={(deleteFile) => {
+            const b = toDelete;
+            setToDelete(null);
+            void attempt(() => api.deleteBook(b.id, deleteFile));
+          }}
+        />
+      )}
+      <UploadOverlay dragging={dragging} progress={uploadProgress} />
+    </>
+  );
+  const selectionBar = selected.size > 0 && (
+    <div className="selection-bar" role="toolbar" aria-label="Selection actions">
+      <span className="selection-count">{selected.size} selected</span>
+      <button
+        className="btn"
+        aria-haspopup="menu"
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setShelfMenu({ x: r.left, y: r.top - 8 - 34 * (manualShelves.length + 1) });
+        }}
+      >
+        Add to shelf
+      </button>
+      {shelfId && activeShelf?.source !== 'folder' && <button className="btn" onClick={removeSelectedFromShelf}>Remove from shelf</button>}
+      <button className="btn btn-quiet" onClick={selectAll}>Select all</button>
+      <button className="icon-btn" aria-label="Clear selection" onClick={clearSelection}>
+        <IconClose size={16} />
+      </button>
+    </div>
+  );
+  const uploadInput = (
+    <input
+      ref={fileInput}
+      type="file"
+      multiple
+      hidden
+      accept=".epub,.pdf,.mobi,.azw,.azw3,.fb2,.fbz,.cbz"
+      onChange={(e) => {
+        void upload(Array.from(e.target.files ?? []));
+        e.target.value = '';
+      }}
+    />
+  );
+  const emptyState = showEmptyLibrary ? (
+    <div className="empty">
+      <h2>Your library is empty</h2>
+      <p>
+        Drop ebook files anywhere on this page, use the Upload button, or mount a folder of books into the
+        server's library directory and press “Rescan library”.
+      </p>
+    </div>
+  ) : !books.loading && list.length === 0 ? (
+    <div className="empty">
+      {urlQuery ? (
+        <>
+          <h2>No books match “{urlQuery}”</h2>
+          <p>Check the spelling or try a different search.</p>
+          <button className="btn" onClick={clearSearch}>Clear search</button>
+        </>
+      ) : (
+        <>
+          <h2>Nothing here yet</h2>
+          <p>No books on this {shelfId ? 'shelf' : 'filter'} yet.</p>
+          {shelfId && activeShelf?.source !== 'folder' && <p>Add books from their context menu or details page.</p>}
+        </>
+      )}
+    </div>
+  ) : null;
+
+  if (studio) {
+    const total = stats.data?.total;
+    const pills: [BookStatus | undefined, string][] = [[undefined, 'All'], ['reading', 'Reading'], ['unread', 'Unread'], ['finished', 'Finished']];
+    return (
+      <StudioFrame
+        active="library"
+        search={searchProps}
+        onUpload={openUpload}
+        onChanged={reloadAll}
+        onMenu={() => setDrawerOpen(true)}
+        refreshKey={books.data}
+        sidebar={
+          <Sidebar
+            shelves={shelves.data ?? []}
+            stats={stats.data}
+            activeShelfId={shelfId}
+            activeStatus={status}
+            open={drawerOpen}
+            onClose={closeDrawer}
+            onChanged={reloadAll}
+          />
+        }
+        inspector={inspectorHidden ? undefined : (
+          <Inspector
+            book={inspected}
+            notes={inspected ? noteCounts.byBook.get(inspected.id) ?? 0 : 0}
+            shelves={shelves.data ?? []}
+            onChanged={reloadAll}
+          />
+        )}
+        statusLeft={selected.size > 0
+          ? `${selected.size} selected · ${list.length} shown`
+          : `${list.length}${total !== undefined && total !== list.length ? ` of ${total}` : ''} ${list.length === 1 ? 'book' : 'books'}${urlQuery ? ` matching “${urlQuery}”` : ''} · ${title}`}
+        hints={LIBRARY_HINTS}
+        overlays={<>{overlays}{uploadInput}</>}
+      >
+        <main className="st-main" ref={contentRef}>
+          {books.error && <div className="notice notice-error">Could not load books: {books.error.message}</div>}
+          <div className="st-head">
+            <h1>{title}</h1>
+            {!books.loading && <span className="st-sub">{list.length} {list.length === 1 ? 'book' : 'books'}{activeShelf?.folder ? ` · ${activeShelf.folder}` : ''}</span>}
+            <div className="st-pills">
+              {pills.map(([st, label]) => (
+                <button key={label} className={`st-pill${status === st ? ' on' : ''}`} aria-pressed={status === st} onClick={() => setStatusFilter(st)}>
+                  {label}
+                </button>
+              ))}
+              <select className="st-pill st-select" aria-label="Sort books" value={sort} onChange={(e) => setSort(e.target.value as BookSort)}>
+                {SORTS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+              <div className="st-viewtoggle" role="group" aria-label="View">
+                <button className={view === 'grid' ? 'on' : ''} aria-label="Grid view" aria-pressed={view === 'grid'} onClick={() => setView('grid')}><SIcon.Grid /></button>
+                <button className={view === 'list' ? 'on' : ''} aria-label="List view" aria-pressed={view === 'list'} onClick={() => setView('list')}><SIcon.List /></button>
+              </div>
+            </div>
+          </div>
+
+          {continueReading.length > 0 && (
+            <section aria-labelledby="st-continue-h">
+              <div className="st-section-title" id="st-continue-h">Continue reading <span>pick up where you left off</span></div>
+              <div className="st-continue">
+                {continueReading.map((b) => (
+                  <div key={b.id} className="st-cont-wrap">
+                    <Link to={`/read/${b.id}`} className="st-cont" aria-label={`Continue reading ${b.title}`}>
+                      <div className="st-mini"><Cover book={b} /></div>
+                      <div className="st-cont-body">
+                        <div className="st-cont-title">{b.title}</div>
+                        <div className="st-muted st-ellipsis">{authorLine(b) || 'Unknown author'}</div>
+                        <div className="st-bar" style={{ marginTop: 10 }}><i style={{ width: formatPercent(b.progress) }} /></div>
+                        <div className="st-cont-meta"><span>{formatPercent(b.progress)}</span><span>{formatRelative(b.lastOpenedAt)}</span></div>
+                      </div>
+                    </Link>
+                    <button
+                      type="button"
+                      className="st-cont-remove"
+                      aria-label={`Remove ${b.title} from Currently Reading`}
+                      onClick={() => attempt(() => api.patchBook(b.id, { status: 'unread' }))}
+                    >
+                      <SIcon.Close />
+                    </button>
+                  </div>
+                ))}
+              </div>
+              <div className="st-section-title">Library <span>{list.length} {list.length === 1 ? 'book' : 'books'}</span></div>
+            </section>
+          )}
+
+          {emptyState ?? (
+            <div className={view === 'grid' ? 'st-grid' : 'st-list'}>
+              {list.map((b) => (
+                <StudioBookCard
+                  key={b.id}
+                  book={b}
+                  view={view}
+                  notes={noteCounts.byBook.get(b.id) ?? 0}
+                  inspected={!inspectorHidden && inspected?.id === b.id}
+                  openOnClick={inspectorHidden}
+                  onInspect={(book) => setInspectedId(book.id)}
+                  onMenu={(book, x, y) => setMenu({ book, x, y })}
+                  selected={selected.has(b.id)}
+                  selectionActive={selected.size > 0}
+                  onSelect={onSelect}
+                  getDragIds={getDragIds}
+                  dragging={!!draggingIds?.includes(b.id)}
+                  onDragChange={setDraggingIds}
+                />
+              ))}
+            </div>
+          )}
+          {selectionBar}
+        </main>
+      </StudioFrame>
+    );
+  }
+
   return (
     <div className="app-shell">
       <Sidebar
@@ -374,17 +602,7 @@ export default function LibraryPage() {
           </div>
           <label className="btn btn-primary upload-btn">
             <IconUpload size={16} /> <span>Upload</span>
-            <input
-              ref={fileInput}
-              type="file"
-              multiple
-              hidden
-              accept=".epub,.pdf,.mobi,.azw,.azw3,.fb2,.fbz,.cbz"
-              onChange={(e) => {
-                void upload(Array.from(e.target.files ?? []));
-                e.target.value = '';
-              }}
-            />
+            {uploadInput}
           </label>
         </header>
 
@@ -420,31 +638,7 @@ export default function LibraryPage() {
             </section>
           )}
 
-          {showEmptyLibrary ? (
-            <div className="empty">
-              <h2>Your library is empty</h2>
-              <p>
-                Drop ebook files anywhere on this page, use the Upload button, or mount a folder of books into the
-                server's library directory and press “Rescan library”.
-              </p>
-            </div>
-          ) : !books.loading && list.length === 0 ? (
-            <div className="empty">
-              {urlQuery ? (
-                <>
-                  <h2>No books match “{urlQuery}”</h2>
-                  <p>Check the spelling or try a different search.</p>
-                  <button className="btn" onClick={clearSearch}>Clear search</button>
-                </>
-              ) : (
-                <>
-                  <h2>Nothing here yet</h2>
-                  <p>No books on this {shelfId ? 'shelf' : 'filter'} yet.</p>
-                  {shelfId && activeShelf?.source !== 'folder' && <p>Add books from their context menu or details page.</p>}
-                </>
-              )}
-            </div>
-          ) : (
+          {emptyState ?? (
             <div className={view === 'grid' ? 'book-grid' : 'book-list'}>
               {list.map((b) => (
                 <BookCard
@@ -464,53 +658,10 @@ export default function LibraryPage() {
           )}
         </div>
 
-        {selected.size > 0 && (
-          <div className="selection-bar" role="toolbar" aria-label="Selection actions">
-            <span className="selection-count">{selected.size} selected</span>
-            <button
-              className="btn"
-              aria-haspopup="menu"
-              onClick={(e) => {
-                const r = e.currentTarget.getBoundingClientRect();
-                setShelfMenu({ x: r.left, y: r.top - 8 - 34 * (manualShelves.length + 1) });
-              }}
-            >
-              Add to shelf
-            </button>
-            {shelfId && activeShelf?.source !== 'folder' && <button className="btn" onClick={removeSelectedFromShelf}>Remove from shelf</button>}
-            <button className="btn btn-quiet" onClick={selectAll}>Select all</button>
-            <button className="icon-btn" aria-label="Clear selection" onClick={clearSelection}>
-              <IconClose size={16} />
-            </button>
-          </div>
-        )}
+        {selectionBar}
       </main>
 
-      {shelfMenu && (
-        <ContextMenu
-          x={shelfMenu.x}
-          y={shelfMenu.y}
-          onClose={() => setShelfMenu(null)}
-          items={[
-            ...manualShelves.map((sh) => ({ label: sh.name, onSelect: () => addSelectedToShelf(sh.id, sh.name) })),
-            { label: 'New shelf…', separatorBefore: manualShelves.length > 0, onSelect: addSelectedToNewShelf },
-          ]}
-        />
-      )}
-
-      {menu && <ContextMenu x={menu.x} y={menu.y} items={menuItems(menu.book)} onClose={() => setMenu(null)} />}
-      {toDelete && (
-        <DeleteBookDialog
-          book={toDelete}
-          onCancel={() => setToDelete(null)}
-          onConfirm={(deleteFile) => {
-            const b = toDelete;
-            setToDelete(null);
-            void attempt(() => api.deleteBook(b.id, deleteFile));
-          }}
-        />
-      )}
-      <UploadOverlay dragging={dragging} progress={uploadProgress} />
+      {overlays}
     </div>
   );
 }

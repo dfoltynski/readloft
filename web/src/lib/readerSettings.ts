@@ -31,6 +31,8 @@ export interface ReaderSettings {
   ttsPauseAtMedia: boolean;
   /** Also paint a translucent highlight over annotated passages (default: margin marks only). */
   showHighlights: boolean;
+  /** Studio design: hide the reader controls while reading. */
+  autoHide: boolean;
 }
 
 export const DEFAULT_SETTINGS: ReaderSettings = {
@@ -50,6 +52,7 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   ttsVoices: {},
   ttsPauseAtMedia: false,
   showHighlights: false,
+  autoHide: true,
 };
 
 const STORAGE_KEY = 'readloft.reader';

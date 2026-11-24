@@ -668,6 +668,19 @@ export function startSync(): void {
   } catch { /* watch unsupported; polling still works */ }
 }
 
+/** "Sync now": write this device's state, re-read every other device's file and apply pending records. */
+export function syncNow(): SyncStatus {
+  if (!SYNC_ENABLED || !device) return getSyncStatus();
+  try {
+    if (writeTimer) { clearTimeout(writeTimer); writeTimer = null; }
+    writeOwn();
+    mergeRemote(true);
+    applyPending();
+    writeOwn();
+  } catch (e) { fail('sync now', e); }
+  return getSyncStatus();
+}
+
 /** After a scan: re-read remote files, then apply pending records for newly present books. */
 export function syncAfterScan(): void {
   if (!SYNC_ENABLED || !device) return;

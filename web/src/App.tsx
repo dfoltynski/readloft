@@ -5,17 +5,19 @@ import ReaderPage from './pages/ReaderPage';
 import NotesPage from './pages/NotesPage';
 import ShortcutsHost from './components/ShortcutsHost';
 import NightLightOverlay from './components/NightLightOverlay';
+import { useDesignSystem } from './design/designSystem';
 import TooltipHost from './components/Tooltip';
 
 export default function App() {
   const { pathname } = useLocation();
+  const ds = useDesignSystem();
   return (
     <>
       <Routes>
         <Route path="/" element={<LibraryPage />} />
         <Route path="/shelf/:id" element={<LibraryPage />} />
         <Route path="/book/:id" element={<BookPage />} />
-        <Route path="/read/:id" element={<ReaderPage />} />
+        <Route path="/read/:id" element={<ReaderPage key={ds} />} />
         <Route path="/notes" element={<NotesPage />} />
         <Route path="*" element={<LibraryPage />} />
       </Routes>

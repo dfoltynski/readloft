@@ -1,10 +1,12 @@
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import type { BookStatus, LibraryStats, Shelf, SyncStatus } from '@shared/types';
+import type { BookStatus, LibraryStats, Shelf } from '@shared/types';
 import { api } from '../api';
 import { BOOKS_DRAG_TYPE } from './BookCard';
 import { useDismiss, useTheme } from '../lib/hooks';
 import { formatRelative } from '../lib/format';
+import { useSyncStatus } from '../lib/sync';
+import { toggleDesignSystem, useDesignSystem } from '../design/designSystem';
 import { openShortcuts } from '../lib/shortcuts';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
@@ -48,7 +50,8 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
   const manualShelves = shelves.filter((s) => s.source === 'manual');
   const folderShelves = shelves.filter((s) => s.source === 'folder');
   const newInput = useRef<HTMLInputElement>(null);
-  const [sync, setSync] = useState<SyncStatus | null>(null);
+  const { status: sync, syncing, syncNow } = useSyncStatus();
+  const studio = useDesignSystem() === 'studio';
   const [syncOpen, setSyncOpen] = useState(false);
   const [notesCount, setNotesCount] = useState<number | null>(null);
   const syncPop = useRef<HTMLDivElement>(null);
@@ -56,18 +59,22 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
   useDismiss(syncPop, syncOpen, closeSync);
   useEffect(() => {
     let alive = true;
-    const load = () => api.syncStatus().then((s) => alive && setSync(s), () => {});
-    load();
-    const t = setInterval(load, 20_000);
-    return () => { alive = false; clearInterval(t); };
-  }, []);
-  useEffect(() => {
-    let alive = true;
     const load = () => api.searchAnnotations().then((l) => alive && setNotesCount(l.length), () => {});
     load();
     const t = setInterval(load, 30_000);
     return () => { alive = false; clearInterval(t); };
   }, [location.pathname]);
+  const runSync = async () => {
+    try {
+      const s = await syncNow();
+      if (s) {
+        toast(s.error ? `Sync error: ${s.error}` : 'Synced', s.error ? 'error' : 'info');
+        onChanged();
+      }
+    } catch (e) {
+      toast((e as Error).message, 'error');
+    }
+  };
   const syncTip = !sync ? 'Sync status'
     : !sync.enabled ? 'Sync off'
     : sync.error ? `Sync error: ${sync.error}`
@@ -279,6 +286,14 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
           )}
         </nav>
 
+        {studio && sync && (
+          <div className="st-tip">
+            <b>{sync.enabled ? 'Sync is on' : 'Sync is off'}</b>
+            {sync.enabled
+              ? 'Progress, notes and shelves follow you through the library folder.'
+              : 'Start the server without SYNC=0 to sync across devices.'}
+          </div>
+        )}
         <div className="side-footer">
           <button className="btn btn-quiet" onClick={rescan} disabled={scanning}>
             <IconRefresh /> {scanning ? 'Scanning…' : 'Rescan library'}
@@ -306,6 +321,10 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
                     ) : sync.devices.map((d) => (
                       <div className="sync-line" key={d.id}>{d.name} <span className="muted">· {formatRelative(d.writtenAt)}</span></div>
                     ))}
+                    <div className="menu-sep" role="separator" />
+                    <button type="button" className="menu-item" onClick={runSync} disabled={syncing}>
+                      <IconSync size={15} /> {syncing ? 'Syncing…' : 'Sync now'}
+                    </button>
                   </>
                 )}
               </div>
@@ -322,6 +341,11 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
             {theme === 'dark' ? <IconSun /> : <IconMoon />}
           </button>
         </div>
+        {!studio && (
+          <div className="side-design">
+            <button className="btn btn-quiet" onClick={toggleDesignSystem}>Try new design</button>
+          </div>
+        )}
       </aside>
 
       {menu && (

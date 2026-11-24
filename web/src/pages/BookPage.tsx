@@ -8,6 +8,10 @@ import { IconBack, IconDownload, IconFolder } from '../components/Icons';
 import { useToast } from '../components/Toast';
 import { authorLine, formatBytes, formatDate, formatPercent, formatRelative, seriesLine, splitParagraphs } from '../lib/format';
 import { useAsync } from '../lib/hooks';
+import { useOnSynced } from '../lib/sync';
+import { useDesignSystem } from '../design/designSystem';
+import StudioFrame from '../design/studio/Frame';
+import StatusSeg from '../design/studio/StatusSeg';
 
 export default function BookPage() {
   const { id = '' } = useParams();
@@ -17,6 +21,8 @@ export default function BookPage() {
   const avail = useAsync(() => api.getAvailability(id).catch(() => null), [id]);
   const shelves = useAsync(() => api.listShelves(), []);
   const notes = useAsync(() => api.listAnnotations(id).catch(() => []), [id]);
+  const studio = useDesignSystem() === 'studio';
+  useOnSynced(() => { book.reload(); notes.reload(); });
   const [editing, setEditing] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const coverInput = useRef<HTMLInputElement>(null);
@@ -52,7 +58,7 @@ export default function BookPage() {
   const series = seriesLine(b);
   const hasProgress = b.progress > 0 && b.status !== 'unread';
 
-  return (
+  const page = (
     <div className="page-narrow">
       <Link to="/" className="btn btn-quiet back-link"><IconBack /> Library</Link>
 
@@ -148,16 +154,20 @@ export default function BookPage() {
 
           <div className="detail-section">
             <label className="field-label" htmlFor="status">Status</label>
-            <select
-              id="status"
-              className="select"
-              value={b.status}
-              onChange={(e) => guard(() => api.patchBook(b.id, { status: e.target.value as BookStatus }))}
-            >
-              <option value="unread">Unread</option>
-              <option value="reading">Reading</option>
-              <option value="finished">Finished</option>
-            </select>
+            {studio ? (
+              <StatusSeg value={b.status} onChange={(status) => void guard(() => api.patchBook(b.id, { status }))} />
+            ) : (
+              <select
+                id="status"
+                className="select"
+                value={b.status}
+                onChange={(e) => guard(() => api.patchBook(b.id, { status: e.target.value as BookStatus }))}
+              >
+                <option value="unread">Unread</option>
+                <option value="reading">Reading</option>
+                <option value="finished">Finished</option>
+              </select>
+            )}
           </div>
 
           <div className="detail-section">
@@ -210,6 +220,18 @@ export default function BookPage() {
         />
       )}
     </div>
+  );
+
+  if (!studio) return page;
+  return (
+    <StudioFrame
+      active="none"
+      onChanged={() => { book.reload(); notes.reload(); }}
+      statusLeft={`${b.title} · ${hasProgress ? formatPercent(b.progress) : 'not started'}`}
+      hints={[['/', 'search'], ['?', 'shortcuts']]}
+    >
+      <main className="st-main st-main-detail">{page}</main>
+    </StudioFrame>
   );
 }
 

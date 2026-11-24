@@ -3,7 +3,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter } from 'react-router-dom';
 import App from './App';
 import { ToastProvider } from './components/Toast';
+import { applyDesignSystem } from './design/designSystem';
 import './styles.css';
+import './design/studio.css';
 
 // One-time migration of storage keys from the project's former name (Bookread).
 function migrateStorage(store: Storage): void {
@@ -23,6 +25,7 @@ function migrateStorage(store: Storage): void {
 }
 migrateStorage(localStorage);
 migrateStorage(sessionStorage);
+applyDesignSystem();
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

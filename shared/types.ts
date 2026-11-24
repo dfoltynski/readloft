@@ -36,6 +36,7 @@
 //            q matches text or note (case-insensitive); sort: recent (updated desc, default) | book (title, progress)
 //   GET    /api/stats                              -> LibraryStats
 //   GET    /api/sync                               -> SyncStatus (cross-device sync via per-device JSON files in <library>/.readloft/sync)
+//   POST   /api/sync                               -> SyncStatus ("sync now": writes this device's file, merges the others' immediately; no-op when sync is disabled)
 // Errors: non-2xx with { error: string }.
 
 export const SUPPORTED_EXTENSIONS = [

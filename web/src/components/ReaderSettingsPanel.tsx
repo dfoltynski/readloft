@@ -65,8 +65,14 @@ export default function ReaderSettingsPanel({ settings: s, fixedLayout, onChange
         onChange={(theme) => onChange({ theme })}
         options={[['Light', 'light'], ['Paper', 'paper'], ['Sepia', 'sepia'], ['Dark', 'dark'], ['Black', 'black'], ['App', 'app']]}
       />
+      <Choice<ReaderSettings['columns']>
+        label="Pages"
+        value={s.columns}
+        onChange={(columns) => onChange({ columns })}
+        options={[['One', '1'], ['Two', 'auto']]}
+      />
       {fixedLayout ? (
-        <p className="muted small">This format has a fixed layout; only the theme background applies.</p>
+        <p className="muted small">This format has a fixed layout; only the theme and page spread apply.</p>
       ) : (
         <>
           <Choice<ReaderFont>
@@ -86,12 +92,6 @@ export default function ReaderSettingsPanel({ settings: s, fixedLayout, onChange
             value={s.flow}
             onChange={(flow) => onChange({ flow })}
             options={[['Paginated', 'paginated'], ['Scrolled', 'scrolled']]}
-          />
-          <Choice<ReaderSettings['columns']>
-            label="Columns"
-            value={s.columns}
-            onChange={(columns) => onChange({ columns })}
-            options={[['Auto', 'auto'], ['1', '1']]}
           />
           {s.flow === 'paginated' && (
             <Toggle label="Page-turn animation" value={s.animate} onChange={(animate) => onChange({ animate })} />

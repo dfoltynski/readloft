@@ -32,6 +32,8 @@ export interface FoliateSearchOptions {
 
 export interface FoliateRenderer extends HTMLElement {
   setStyles?(css: string): void;
+  /** Re-runs the renderer's setup for a book (used to change the fixed-layout spread mode). */
+  open?(book: unknown): void;
   next(): Promise<void>;
   prev(): Promise<void>;
   nextSection?(): Promise<void>;

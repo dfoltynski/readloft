@@ -96,6 +96,7 @@ export const api = {
   },
   stats: () => request<LibraryStats>('/api/stats'),
   syncStatus: () => request<SyncStatus>('/api/sync'),
+  syncNow: () => request<SyncStatus>('/api/sync', { method: 'POST' }),
 };
 
 /** Upload files with progress (XMLHttpRequest, since fetch has no upload progress). */

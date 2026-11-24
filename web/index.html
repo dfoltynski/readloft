@@ -15,6 +15,7 @@
       try {
         var t = localStorage.getItem('data-theme');
         if (t === 'light' || t === 'dark') document.documentElement.setAttribute('data-theme', t);
+        document.documentElement.dataset.ds = localStorage.getItem('readloft.designSystem') === 'studio' ? 'studio' : 'classic';
       } catch (e) {}
     </script>
   </head>

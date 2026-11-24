@@ -24,7 +24,9 @@ export const READER_SHORTCUTS: ShortcutGroup[] = [
       ['← / →', 'Previous / next page'],
       ['Space / Shift+Space', 'Next / previous page'],
       ['PageUp / PageDown', 'Previous / next page'],
+      ['D', 'One / two pages'],
       ['F', 'Fullscreen'],
+      ['M', 'Show / hide controls'],
     ],
   },
   {
