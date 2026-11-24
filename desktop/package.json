@@ -5,6 +5,7 @@
   "description": "Self-hosted ebook library and reader",
   "license": "PolyForm-Noncommercial-1.0.0",
   "author": "dfoltynski",
+  "homepage": "https://github.com/dfoltynski/readloft",
   "private": true,
   "type": "module",
   "main": "main.js",
