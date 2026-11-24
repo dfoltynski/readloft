@@ -46,7 +46,8 @@
     "linux": {
       "category": "Office",
       "maintainer": "dfoltynski",
-      "target": ["AppImage", "deb"]
+      "target": ["AppImage", "deb"],
+      "executableName": "readloft"
     },
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }]
