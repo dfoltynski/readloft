@@ -26,7 +26,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/library.png" alt="Readloft library with a Continue reading row, shelves and folders" width="900">
+  <img src="docs/screenshots/library.png" alt="Readloft library with a Continue reading row, book grid and the Selected inspector" width="900">
 </p>
 
 Point Readloft at a folder of books, open a browser (or the desktop app) and read. It runs on your own machine or server, keeps your reading state in a local SQLite database, and needs no account.
@@ -34,20 +34,26 @@ Point Readloft at a folder of books, open a browser (or the desktop app) and rea
 ## Features
 
 **Library**
+- Studio UI: sidebar with shelves and folders, a "Continue reading" row, grid and list views, and a status bar with shortcut hints.
+- Click a book to see it in the Selected inspector (progress, status, shelves, notes) and continue reading from there.
 - Scans a folder for EPUB, PDF, MOBI/AZW/AZW3, FB2/FBZ and CBZ and extracts title, authors, series, description and covers.
-- Grid and list views, search, sort, and a "Continue reading" row.
-- Status filters (reading, finished, unread); mark books finished or unread.
+- Search, sort, status filters (reading, finished, unread); mark books finished or unread.
 - Drag and drop files into the browser to upload them.
 - Edit metadata and set custom covers; edits survive rescans.
+- Light and dark themes.
 
 **Reader**
 - Powered by [foliate-js](https://github.com/johnfactotum/foliate-js). Paginated or scrolled, light/paper/sepia/dark/black themes, fonts, size, line height, margins.
+- Distraction-free: the controls auto-hide. Reveal them from the top or bottom edge, by clicking the middle of the page, or with `M`. Turn this off with "Auto-hide controls" in reader settings.
+- One/two-page switch (`D`), also for PDFs.
 - Table of contents, search in book, bookmarks (rename them in place), progress synced to the server.
+- "Sync now" button with a status dot in the reader's top bar.
+- `Esc` steps back one layer: close the open panel, then stop read-aloud, then return to the library.
 
 **Notes & highlights**
 - Select text to highlight it (4 colors) or add a note. Works in EPUB and PDF.
 - By default only a quiet margin mark is drawn; turn on "Show highlights in text" in reader settings for a tinted highlight.
-- Browse and search them in the reader's Notes tab (grouped by chapter, with a "You are here" marker) and on the library's Notes page. Export as Markdown.
+- Browse and search them in the reader's Notes drawer (grouped by chapter, with a "You are here" marker) and on the library's Notes page. Export as Markdown.
 
 **Read aloud**
 - Speaks the book sentence by sentence with your system voices (browser speech synthesis), following along with a highlight.
@@ -70,20 +76,20 @@ Point Readloft at a folder of books, open a browser (or the desktop app) and rea
 
 <table>
   <tr>
-    <td width="50%"><img src="docs/screenshots/reader.png" alt="Reader with margin note marks"><br><sub><b>Reader.</b> A quiet margin mark shows where a note lives; hover to read it.</sub></td>
-    <td width="50%"><img src="docs/screenshots/reader-light.png" alt="Reader in the sepia theme"><br><sub><b>Themes.</b> Light, paper, sepia, dark and black, or follow the app.</sub></td>
+    <td width="50%"><img src="docs/screenshots/reader.png" alt="Immersive two-page reading"><br><sub><b>Reading.</b> Controls hidden, two-page spread, a quiet margin mark where a note lives.</sub></td>
+    <td width="50%"><img src="docs/screenshots/reader-controls.png" alt="Reader with controls revealed"><br><sub><b>Controls.</b> Move to the top or bottom edge (or press <code>M</code>) for the top bar and dock: progress, paged/scroll, one/two pages, bookmark, contents and settings.</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="docs/screenshots/selection.png" alt="Selection toolbar with highlight colors"><br><sub><b>Highlights.</b> Select text, pick one of four colors or press <code>N</code> to add a note.</sub></td>
-    <td width="50%"><img src="docs/screenshots/notes-panel.png" alt="Notes tab in the reader"><br><sub><b>Notes tab.</b> Notes grouped by chapter, with a marker for where you are.</sub></td>
+    <td width="50%"><img src="docs/screenshots/selection.png" alt="Selection toolbar with highlight colors"><br><sub><b>Highlights.</b> Select text, pick one of four colors, or press <code>N</code> to add a note.</sub></td>
+    <td width="50%"><img src="docs/screenshots/notes-panel.png" alt="Notes drawer in the reader"><br><sub><b>Notes drawer.</b> Notes grouped by chapter, with a marker for where you are.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/notes.png" alt="Notes page"><br><sub><b>Notes page.</b> Every note and highlight across your library; search, filter by color, export.</sub></td>
-    <td width="50%"><img src="docs/screenshots/read-aloud.png" alt="Read aloud bar"><br><sub><b>Read aloud.</b> Sentence-by-sentence speech with speed and voice controls.</sub></td>
+    <td width="50%"><img src="docs/screenshots/read-aloud.png" alt="Reader while reading aloud"><br><sub><b>Read aloud.</b> The current sentence is highlighted; a mini pause button stays when controls hide.</sub></td>
   </tr>
   <tr>
     <td width="50%"><img src="docs/screenshots/book.png" alt="Book details page"><br><sub><b>Book details.</b> Progress, metadata, status and shelves.</sub></td>
-    <td width="50%"></td>
+    <td width="50%"><img src="docs/screenshots/library-dark.png" alt="Dark theme library"><br><sub><b>Dark theme.</b> The same library in dark.</sub></td>
   </tr>
 </table>
 
@@ -195,7 +201,7 @@ Press `?` anywhere for the full cheatsheet (source: `web/src/lib/shortcuts.ts`).
 | Where | Keys |
 | --- | --- |
 | Library | `/` focus search, `U` upload books, `Ctrl/Cmd+A` select all visible books, `Esc` clear selection / leave search, `?` keyboard shortcuts |
-| Reading | `←` `→` previous / next page, `Space` / `Shift+Space` next / previous page, `PageUp` `PageDown` previous / next page, `F` fullscreen |
+| Reading | `←` `→` previous / next page, `Space` / `Shift+Space` next / previous page, `PageUp` `PageDown` previous / next page, `D` one / two pages, `F` fullscreen, `M` show / hide controls |
 | Navigation | `T` table of contents, `B` toggle bookmark, `Ctrl/Cmd+F` search in book |
 | Notes | `N` add note to selection, `A` notes panel, `Esc` close note cards |
 | Read aloud | `R` start / pause / resume, `[` `]` previous / next sentence |
@@ -209,7 +215,7 @@ Point several Readloft installs (e.g. desktop apps on two Macs) at the same libr
 - **Does not sync:** reader display settings, custom covers, folder shelves (derived from the folder layout).
 - Records for books a device doesn't have yet are kept and applied once the book shows up.
 - **Caveats:** "newest" is decided by each device's clock, so keep clocks roughly right. Linux has no iCloud client; use any folder sync tool (Syncthing, etc.) on the library folder instead.
-- `SYNC=0` turns it off; `SYNC_DIR` overrides the location. Status: `GET /api/sync` or the cloud icon in the sidebar.
+- `SYNC=0` turns it off; `SYNC_DIR` overrides the location. Status: `GET /api/sync`, the status dot and Sync button in the top bar (click to sync now), or the Sync card in the library sidebar.
 
 ## Roadmap ideas
 
