@@ -17,14 +17,26 @@ function migrateLegacyUserData() {
   try {
     const next = app.getPath('userData');
     const legacy = path.join(path.dirname(next), 'Read' + 'loft');
-    if (fs.existsSync(next) || !fs.existsSync(legacy)) return;
-    try {
-      fs.renameSync(legacy, next);
-      console.log(`Migrated app data ${legacy} -> ${next}`);
-    } catch {
-      fs.cpSync(legacy, next, { recursive: true });
-      console.log(`Copied app data ${legacy} -> ${next} (rename failed; legacy folder left in place)`);
+    if (!fs.existsSync(legacy)) return;
+    // Electron may create userData (GPU cache etc.) before this runs, so "exists" is not enough:
+    // only skip when the new folder already holds our own data.
+    const hasOwnData = ['config.json', 'data'].some((f) => fs.existsSync(path.join(next, f)));
+    if (hasOwnData) return;
+    if (!fs.existsSync(next)) {
+      try {
+        fs.renameSync(legacy, next);
+        console.log(`Migrated app data ${legacy} -> ${next}`);
+        return;
+      } catch { /* fall through to per-entry move */ }
     }
+    fs.mkdirSync(next, { recursive: true });
+    for (const name of fs.readdirSync(legacy)) {
+      const from = path.join(legacy, name);
+      const to = path.join(next, name);
+      if (fs.existsSync(to)) continue; // keep what Electron just created (caches, locks)
+      try { fs.renameSync(from, to); } catch { fs.cpSync(from, to, { recursive: true }); }
+    }
+    console.log(`Migrated app data ${legacy} -> ${next} (legacy folder left with leftovers)`);
   } catch (err) {
     console.error('App data migration failed', err);
   }
@@ -62,14 +74,14 @@ function isFree(p) {
   return new Promise((resolve) => {
     const s = net.createServer();
     s.once('error', () => resolve(false));
-    s.listen(p, () => s.close(() => resolve(true)));
+    s.listen(p, '127.0.0.1', () => s.close(() => resolve(true)));
   });
 }
 function randomFreePort() {
   return new Promise((resolve, reject) => {
     const s = net.createServer();
     s.once('error', reject);
-    s.listen(0, () => { const { port: p } = s.address(); s.close(() => resolve(p)); });
+    s.listen(0, '127.0.0.1', () => { const { port: p } = s.address(); s.close(() => resolve(p)); });
   });
 }
 async function choosePort() {
@@ -152,6 +164,7 @@ async function start() {
   // Desktop is single-user and local: bind loopback only, no login.
   process.env.HOST = '127.0.0.1';
   process.env.AUTH = 'none';
+  process.env.LIBRISTEAD_VERSION = app.getVersion();
   await import(pathToFileURL(serverEntry).href);
   await waitForServer(port);
   buildMenu();
