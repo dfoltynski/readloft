@@ -1,11 +1,13 @@
 {
   "name": "@libristead/server",
+  "version": "0.3.0",
   "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "scripts": {
     "dev": "node --watch src/index.ts",
     "start": "node src/index.ts",
+    "reset-password": "node src/cli/reset-password.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

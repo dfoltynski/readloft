@@ -77,6 +77,28 @@ const MIGRATIONS: string[] = [
   // 5: notes & highlights
   `CREATE TABLE annotations (id TEXT PRIMARY KEY, book_id TEXT NOT NULL REFERENCES books(id) ON DELETE CASCADE, cfi TEXT NOT NULL, text TEXT NOT NULL DEFAULT '', note TEXT NOT NULL DEFAULT '', color TEXT NOT NULL DEFAULT 'yellow', progress REAL NOT NULL DEFAULT 0, chapter TEXT, created_at TEXT NOT NULL, updated_at TEXT NOT NULL);
   CREATE INDEX idx_annotations_book ON annotations(book_id, progress);`,
+  // 6: authentication (password mode)
+  `CREATE TABLE auth_user (
+    id INTEGER PRIMARY KEY CHECK (id = 1),
+    password_hash TEXT NOT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+  CREATE TABLE sessions (
+    id_hash TEXT PRIMARY KEY,
+    created_at TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    last_seen_at TEXT NOT NULL,
+    user_agent TEXT
+  );
+  CREATE TABLE api_tokens (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    token_hash TEXT NOT NULL UNIQUE,
+    created_at TEXT NOT NULL,
+    last_used_at TEXT,
+    revoked_at TEXT
+  );`,
 ];
 
 fs.mkdirSync(DATA_DIR, { recursive: true });

@@ -4,6 +4,8 @@ import LibraryPage from './pages/LibraryPage';
 import BookPage from './pages/BookPage';
 import ReaderPage from './pages/ReaderPage';
 import NotesPage from './pages/NotesPage';
+import LoginPage from './pages/LoginPage';
+import SetupPage from './pages/SetupPage';
 import ShortcutsHost from './components/ShortcutsHost';
 import NightLightOverlay from './components/NightLightOverlay';
 import TooltipHost from './components/Tooltip';
@@ -13,6 +15,8 @@ export default function App() {
   return (
     <>
       <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/setup" element={<SetupPage />} />
         <Route path="/" element={<LibraryPage />} />
         <Route path="/shelf/:id" element={<LibraryPage />} />
         <Route path="/book/:id" element={<BookPage />} />

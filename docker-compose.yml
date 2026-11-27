@@ -1,6 +1,12 @@
+# Libristead: copy-paste ready.
+#   docker compose up -d
+#   docker logs libristead      # first run: one-time setup code
 services:
   libristead:
-    build: .
+    image: ghcr.io/dfoltynski/libristead:0.3.0
+    # To build from source instead of pulling the image, comment out `image`
+    # above and uncomment:
+    # build: .
     container_name: libristead
     ports:
       - "8080:8080"
@@ -8,5 +14,33 @@ services:
       - ./books:/books   # your ebook folder (read/write: uploads land in /books/uploads)
       - ./data:/data     # database + cached covers
     environment:
-      - SCAN_INTERVAL_MINUTES=30
+      - AUTH=password            # password (default) | proxy | none (loopback only)
+      - TRUST_PROXY=0            # set to 1 only when behind a reverse proxy (see below)
+      - SCAN_INTERVAL_MINUTES=30 # periodic rescan, 0 disables
     restart: unless-stopped
+    # The image ships a HEALTHCHECK (GET /api/health); no need to repeat it here.
+
+  # --- Optional: Caddy reverse proxy with automatic HTTPS ---
+  # When using it: set TRUST_PROXY=1 above, and replace the `ports:` mapping
+  # of libristead with `expose: ["8080"]` so only Caddy is reachable.
+  #
+  # caddy:
+  #   image: caddy:2
+  #   container_name: caddy
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #   depends_on:
+  #     - libristead
+  #   restart: unless-stopped
+  #
+  # Caddyfile:
+  #   books.example.com {
+  #     reverse_proxy libristead:8080
+  #   }
+  #
+  # volumes:
+  #   caddy_data:

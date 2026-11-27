@@ -38,6 +38,17 @@
 //   GET    /api/stats                              -> LibraryStats
 //   GET    /api/sync                               -> SyncStatus (cross-device sync via per-device JSON files in <library>/.libristead/sync)
 //   POST   /api/sync                               -> SyncStatus ("sync now": writes this device's file, merges the others' immediately; no-op when sync is disabled)
+//   Authentication (server env AUTH=password|proxy|none; every /api route except the three public ones below requires it):
+//   GET    /api/auth/status                        -> AuthStatus (public)
+//   POST   /api/auth/setup    body: { code, password } -> { ok: true } (public; first run only: code is printed in the server log; sets the session cookie; password min 10 chars)
+//   POST   /api/auth/login    body: { password }   -> { ok: true } (public; sets the session cookie; 429 + Retry-After after repeated failures)
+//   POST   /api/auth/logout                        -> { ok: true }
+//   POST   /api/auth/password body: { current, next } -> { ok: true } (revokes all other sessions)
+//   GET    /api/auth/tokens                        -> ApiToken[] (session only)
+//   POST   /api/auth/tokens   body: { name }       -> CreatedApiToken (session only; plaintext token shown once)
+//   DELETE /api/auth/tokens/:id                    -> { ok: true } (session only)
+//   Browser requests authenticated by cookie must send header "X-Requested-With: libristead" on POST/PUT/PATCH/DELETE.
+//   Scripts/OPDS/KOReader: "Authorization: Bearer lst_..." or HTTP Basic with any username and the token as password.
 // Errors: non-2xx with { error: string }.
 
 export const SUPPORTED_EXTENSIONS = [
@@ -166,4 +177,25 @@ export interface BookAvailability {
   percent: number | null;    // 0..100 when known (iCloud only), else null
   provider: string | null;   // e.g. 'iCloud Drive', 'Dropbox'; null for plain local paths
   size: number;              // bytes (from the index)
+}
+
+export type AuthMode = 'password' | 'proxy' | 'none';
+
+export interface AuthStatus {
+  mode: AuthMode;
+  /** password mode only: no password set yet, the setup code from the server log is needed. */
+  setupRequired: boolean;
+  authenticated: boolean;
+}
+
+export interface ApiToken {
+  id: string;
+  name: string;
+  createdAt: string;
+  lastUsedAt: string | null;
+}
+
+export interface CreatedApiToken extends ApiToken {
+  /** Plaintext token, returned only once. */
+  token: string;
 }

@@ -4,15 +4,14 @@
 
 <h1 align="center">Libristead</h1>
 
+<p align="center">Libristead is a self-hosted ebook library and reader: point it at a folder of books and read them in your browser or the desktop app.</p>
+
 <p align="center"><em>Formerly Readloft.</em></p>
 
 <p align="center">
-  Your ebook library, self-hosted. Read anywhere, sync everywhere.
-</p>
-
-<p align="center">
   <a href="LICENSE"><img alt="license: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
-  <a href="../../releases"><img alt="release" src="https://img.shields.io/github/v/release/dfoltynski/libristead?include_prereleases"></a>
+  <a href="https://github.com/dfoltynski/libristead/releases"><img alt="release" src="https://img.shields.io/github/v/release/dfoltynski/libristead?include_prereleases"></a>
+  <a href="https://github.com/dfoltynski/libristead/actions/workflows/ci.yml"><img alt="CI" src="https://github.com/dfoltynski/libristead/actions/workflows/ci.yml/badge.svg"></a>
   <img alt="node 24+" src="https://img.shields.io/badge/node-24%2B-339933">
   <img alt="docker ready" src="https://img.shields.io/badge/docker-ready-2496ED">
   <img alt="platforms: macOS | Linux | Windows" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey">
@@ -22,6 +21,7 @@
   <a href="#features">Features</a> &middot;
   <a href="#screenshots">Screenshots</a> &middot;
   <a href="#quick-start-docker">Install</a> &middot;
+  <a href="#comparison">Comparison</a> &middot;
   <a href="#desktop-app">Desktop app</a> &middot;
   <a href="#keyboard-shortcuts">Shortcuts</a> &middot;
   <a href="#sync-between-devices">Sync</a>
@@ -31,7 +31,7 @@
   <img src="docs/screenshots/library.png" alt="Libristead library with a Continue reading row, book grid and the Selected inspector" width="900">
 </p>
 
-Point Libristead at a folder of books, open a browser (or the desktop app) and read. It runs on your own machine or server, keeps your reading state in a local SQLite database, and needs no account.
+Point Libristead at a folder of books, open a browser (or the desktop app) and read. It runs on your own machine or server, keeps your reading state in a local SQLite database, and protects access with a single password (or your reverse proxy). No cloud, no telemetry.
 
 ## Features
 
@@ -109,20 +109,60 @@ flowchart LR
 ## Quick start (Docker)
 
 ```sh
-git clone https://github.com/dfoltynski/libristead.git
-cd libristead
-docker compose up -d --build
-# open http://localhost:8080 — put books in ./books
+curl -O https://raw.githubusercontent.com/dfoltynski/libristead/main/docker-compose.yml
+docker compose up -d
+docker logs libristead   # prints the one-time setup code; open http://localhost:8080 and enter it
 ```
 
-| Env var | Default | Meaning |
+Put your books in `./books` (created next to the compose file). The compose file pulls the published image; to build from source instead, clone the repo and use the commented `build: .` line.
+
+### Environment variables
+
+| Variable | Default | Meaning |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP port |
+| `HOST` | `0.0.0.0` | Bind address |
 | `LIBRARY_DIR` | `./books` (`/books` in Docker) | Folder scanned for books; uploads go to `uploads/` inside it |
 | `DATA_DIR` | `./data` (`/data` in Docker) | SQLite database and cover cache |
+| `AUTH` | `password` | `password`, `proxy` or `none` (see [Exposing to the internet](#exposing-to-the-internet)) |
+| `AUTH_PROXY_HEADER` | `Remote-User` | Header carrying the username when `AUTH=proxy` |
+| `AUTH_TRUSTED_PROXIES` | (empty) | Comma-separated proxy IPs; required when `AUTH=proxy` |
+| `TRUST_PROXY` | (off) | `1` to honour `X-Forwarded-Proto` / `X-Forwarded-For` from a reverse proxy |
 | `SCAN_INTERVAL_MINUTES` | `30` | Periodic rescan, `0` disables |
+| `SYNC` | on | `0` disables [cross-device sync](#sync-between-devices) |
+| `SYNC_DIR` | `<library>/.libristead/sync` | Override the sync folder |
+| `WEB_DIST` | `../web/dist` (`/app/web/dist` in Docker) | Location of the built web UI |
 
-> No authentication yet. Don't expose it to the internet directly — put it behind a reverse proxy with auth (Authelia, Authentik, Caddy basic auth…) or on a private network (Tailscale).
+### Volumes
+
+| Path in container | Purpose |
+| --- | --- |
+| `/books` | Your ebook folder. Read/write: uploads land in `/books/uploads`. |
+| `/data` | SQLite database, cover cache and the setup code. Back this up. |
+
+The image runs as the non-root `node` user and has a built-in health check (`GET /api/health`, which returns only `{ok, version}` without login). It is published for `linux/amd64` and `linux/arm64`.
+
+> The server requires a password by default. See [Exposing to the internet](#exposing-to-the-internet) before publishing it.
+
+## Comparison
+
+A neutral, high-level look at related self-hosted projects. `—` means not offered as far as we know, `?` means we are not sure.
+
+| | Libristead | Calibre-Web | Kavita | Komga | Audiobookshelf |
+| --- | --- | --- | --- | --- | --- |
+| Main focus | Ebooks | Ebooks (Calibre library) | Manga, comics, books | Comics, manga, books | Audiobooks, podcasts |
+| License | AGPL-3.0 | GPL-3.0 | GPL-3.0 | MIT | GPL-3.0 |
+| Reads a plain folder of files | Yes | — (uses a Calibre database) | Yes | Yes | Yes |
+| Built-in web reader | Yes | Yes | Yes | Yes | Yes (ebooks) |
+| OPDS | Yes (1.2) | Yes | Yes | Yes | ? |
+| Multiple users | — (one password, or proxy auth) | Yes | Yes | Yes | Yes |
+| Highlights and notes in the reader | Yes | ? | ? | ? | ? |
+| Read aloud (browser voices) | Yes | — | ? | ? | — |
+| Desktop app | Yes | — | — | — | — |
+| Cross-device progress sync via shared folder | Yes | — | — | — | — |
+| Official docker image | Yes | ? | Yes | Yes | Yes |
+
+Libristead is deliberately small: a single-user library with a good reader. If you need many users, comics-first features or audiobooks, the projects above are mature and worth a look. Corrections welcome: open an issue or a pull request if anything here is out of date or wrong.
 
 ## Development
 
@@ -145,6 +185,32 @@ server/           Hono API, node:sqlite, folder scanner, metadata extractors
 web/              React + Vite UI; reader wraps <foliate-view>
 scripts/          setup helpers
 ```
+
+## Exposing to the internet
+
+Libristead has built-in authentication. Always put it behind a reverse proxy that terminates HTTPS (Caddy, nginx, Traefik) so passwords and cookies never cross the network in clear text. Set `TRUST_PROXY=1` when the proxy sets `X-Forwarded-Proto` / `X-Forwarded-For`; the session cookie is then marked `Secure` and login rate limiting uses the real client IP. Only enable it when the server is reachable solely through that proxy, otherwise clients can spoof those headers.
+
+| `AUTH` | Behaviour |
+| --- | --- |
+| `password` (default) | One password (min. 10 characters), session cookie valid 30 days. Everything under `/api` requires login except the login and setup endpoints. |
+| `proxy` | Your reverse proxy (Authelia, Authentik, Caddy forward auth…) authenticates users. The request is accepted only if its TCP peer is listed in `AUTH_TRUSTED_PROXIES` (comma-separated IPs, required) and the `AUTH_PROXY_HEADER` header (default `Remote-User`) is non-empty. |
+| `none` | No login. Only allowed when `HOST` is loopback (`127.0.0.1`, `::1`, `localhost`); requests with any other `Host` header are rejected (DNS rebinding protection). Used by the desktop app. |
+
+`HOST` (default `0.0.0.0`) is the bind address.
+
+**First run (password mode).** The server prints a one-time setup code to its log on every start until a password exists (`docker logs libristead`). Open the web UI, enter the code and choose a password. The code is stored only as a hash in `DATA_DIR/setup-code` and removed after setup.
+
+**Forgot the password.** Remove it and run setup again; a new code is printed on the next start:
+
+```sh
+docker exec libristead npm run reset-password   # Docker (run from /app/server)
+npm run reset-password -w server                # from a checkout
+docker restart libristead
+```
+
+**API tokens for OPDS / KOReader clients.** Create one in the web UI (info icon in the sidebar, "API tokens"). The token is shown once. Clients send `Authorization: Bearer lst_...`, or HTTP Basic auth with any username and the token as the password. Revoke tokens in the same dialog.
+
+Failed logins are rate limited (5 per 15 minutes per IP, 50 globally).
 
 ## Desktop app
 
@@ -219,15 +285,34 @@ Point several Libristead installs (e.g. desktop apps on two Macs) at the same li
 - **Caveats:** "newest" is decided by each device's clock, so keep clocks roughly right. Linux has no iCloud client; use any folder sync tool (Syncthing, etc.) on the library folder instead.
 - `SYNC=0` turns it off; `SYNC_DIR` overrides the location. Status: `GET /api/sync`, the status dot and Sync button in the top bar (click to sync now), or the Sync card in the library sidebar.
 
+## OPDS (KOReader, Thorium, Moon+ Reader…)
+
+Libristead serves an OPDS 1.2 catalog, so e-reader apps can browse and download your books: recently added, currently reading, authors, series, shelves, all books, and search.
+
+- **Catalog URL:** `https://<host>/opds`
+- **Credentials:** the catalog needs authentication. In the app open **About → API tokens**, create a token, then use any username and the token as the password (HTTP Basic). Bearer auth works too.
+- **KOReader:** Search → OPDS catalog → **+** → enter the catalog URL, your username (anything) and the token as the password → save, then open the new entry to browse. Long-press a book to download it.
+- Use HTTPS when the server is reachable beyond your LAN; Basic credentials are sent on every request. See "Exposing to the internet".
+
 ## Roadmap ideas
 
-- Users & auth, per-user progress
+- Multiple users, per-user progress
 - Online metadata lookup (Open Library / Google Books)
-- OPDS feed for other reading apps
 - Reading stats and goals
 - PWA / offline reading
 - PDF tools: merge, split, convert
 - Self-hostable out of the box, plus installable desktop apps: buildable for macOS, Windows and Linux
+
+## Project governance
+
+- [GOVERNANCE.md](GOVERNANCE.md): how decisions are made
+- [AI_POLICY.md](AI_POLICY.md): rules for AI-assisted contributions
+- [SECURITY.md](SECURITY.md): reporting vulnerabilities
+- [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md)
+- [CONTRIBUTING.md](CONTRIBUTING.md): development workflow and DCO sign-off
+- [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+
+**Libristead stays AGPL-3.0. No relicensing to source-available licenses, no paid edition.**
 
 ## Contributing
 

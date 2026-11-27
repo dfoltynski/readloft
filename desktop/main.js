@@ -149,6 +149,9 @@ async function start() {
   process.env.LIBRARY_DIR = libraryDir;
   process.env.DATA_DIR = dataDir;
   process.env.WEB_DIST = webDist;
+  // Desktop is single-user and local: bind loopback only, no login.
+  process.env.HOST = '127.0.0.1';
+  process.env.AUTH = 'none';
   await import(pathToFileURL(serverEntry).href);
   await waitForServer(port);
   buildMenu();

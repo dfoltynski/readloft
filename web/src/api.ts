@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import type {
-  Annotation, AnnotationColor, AnnotationWithBook, Book, BookAvailability, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
+  Annotation, AnnotationColor, AnnotationWithBook, ApiToken, AuthStatus, Book, BookAvailability, BookPatch, Bookmark, BookStatus, CreatedApiToken, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
 } from '@shared/types';
 
 export type BookSort = 'added' | 'title' | 'author' | 'recent';
@@ -12,8 +12,25 @@ export interface BookQuery {
   sort?: BookSort;
 }
 
+const CSRF_HEADERS = { 'X-Requested-With': 'libristead' };
+
+export function onUnauthorized(): void {
+  const p = window.location.pathname;
+  if (p !== '/login' && p !== '/setup') window.location.assign('/login');
+}
+
+/** fetch with the CSRF header on every request; sends the user to /login on 401. */
+function apiFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const headers = new Headers(init.headers);
+  for (const [k, v] of Object.entries(CSRF_HEADERS)) headers.set(k, v);
+  return fetch(url, { ...init, headers }).then((res) => {
+    if (res.status === 401) onUnauthorized();
+    return res;
+  });
+}
+
 async function request<T>(url: string, init?: RequestInit): Promise<T> {
-  const res = await fetch(url, init);
+  const res = await apiFetch(url, init);
   if (!res.ok) throw new Error(await errorMessage(res));
   return (await res.json()) as T;
 }
@@ -60,7 +77,7 @@ export const api = {
     request<Book>(`/api/books/${id}/progress`, json('PUT', update)),
   /** Fire-and-forget progress save that survives page unload. */
   saveProgressKeepalive(id: string, update: ProgressUpdate) {
-    fetch(`/api/books/${id}/progress`, { ...json('PUT', update), keepalive: true }).catch(() => {});
+    apiFetch(`/api/books/${id}/progress`, { ...json('PUT', update), keepalive: true }).catch(() => {});
   },
   scan: () => request<ScanResult>('/api/scan', { method: 'POST' }),
   listShelves: () => request<Shelf[]>('/api/shelves'),
@@ -98,6 +115,13 @@ export const api = {
   stats: () => request<LibraryStats>('/api/stats'),
   syncStatus: () => request<SyncStatus>('/api/sync'),
   syncNow: () => request<SyncStatus>('/api/sync', { method: 'POST' }),
+  authStatus: () => request<AuthStatus>('/api/auth/status'),
+  login: (password: string) => request<{ ok: true }>('/api/auth/login', json('POST', { password })),
+  setup: (code: string, password: string) => request<{ ok: true }>('/api/auth/setup', json('POST', { code, password })),
+  logout: () => request<{ ok: true }>('/api/auth/logout', { method: 'POST' }),
+  listTokens: () => request<ApiToken[]>('/api/auth/tokens'),
+  createToken: (name: string) => request<CreatedApiToken>('/api/auth/tokens', json('POST', { name })),
+  revokeToken: (id: string) => request<{ ok: true }>(`/api/auth/tokens/${id}`, { method: 'DELETE' }),
 };
 
 /** Upload files with progress (XMLHttpRequest, since fetch has no upload progress). */
@@ -110,6 +134,7 @@ export function uploadFiles(
     for (const f of files) form.append('files', f);
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/api/upload');
+    xhr.setRequestHeader('X-Requested-With', 'libristead');
     xhr.upload.onprogress = (e) => {
       if (e.lengthComputable) onProgress(e.loaded / e.total);
     };
@@ -121,6 +146,7 @@ export function uploadFiles(
       } catch {
         /* ignore */
       }
+      if (xhr.status === 401) onUnauthorized();
       if (xhr.status >= 200 && xhr.status < 300) {
         resolve({ added: body.added ?? [], skipped: body.skipped ?? [] });
       } else {

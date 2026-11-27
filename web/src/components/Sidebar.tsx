@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: AGPL-3.0-only
 import { Fragment, useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom';
-import type { BookStatus, LibraryStats, Shelf } from '@shared/types';
+import type { AuthStatus, BookStatus, LibraryStats, Shelf } from '@shared/types';
 import { api } from '../api';
 import { BOOKS_DRAG_TYPE } from '../lib/dragTypes';
 import { useDismiss, useTheme } from '../lib/hooks';
@@ -9,6 +9,7 @@ import { formatRelative } from '../lib/format';
 import { useSyncStatus } from '../lib/sync';
 import { openShortcuts } from '../lib/shortcuts';
 import ContextMenu from './ContextMenu';
+import ApiTokensDialog from './ApiTokensDialog';
 import { useToast } from './Toast';
 import {
   IconBooks, IconCheck, IconCircle, IconFolder, IconInfo, IconKeyboard, IconLogo, IconMoon, IconNote, IconPlus, IconReading, IconRefresh,
@@ -56,6 +57,13 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
   const syncPop = useRef<HTMLDivElement>(null);
   const closeSync = useCallback(() => setSyncOpen(false), []);
   useDismiss(syncPop, syncOpen, closeSync);
+  const [authStatus, setAuthStatus] = useState<AuthStatus | null>(null);
+  const [tokensOpen, setTokensOpen] = useState(false);
+  useEffect(() => { api.authStatus().then(setAuthStatus, () => {}); }, []);
+  const logout = async () => {
+    try { await api.logout(); } catch { /* session already gone */ }
+    window.location.assign('/login');
+  };
   const [aboutOpen, setAboutOpen] = useState(false);
   const aboutPop = useRef<HTMLDivElement>(null);
   const closeAbout = useCallback(() => setAboutOpen(false), []);
@@ -354,6 +362,13 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
                 <div className="menu-sep" />
                 <div className="sync-line"><a href="https://github.com/dfoltynski/libristead/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">Third-party licenses</a></div>
                 <div className="sync-line"><a href="https://github.com/dfoltynski/libristead" target="_blank" rel="noreferrer">Source code</a></div>
+                {authStatus?.mode === 'password' && (
+                  <>
+                    <div className="menu-sep" />
+                    <button type="button" className="menu-item" onClick={() => { setAboutOpen(false); setTokensOpen(true); }}>API tokens</button>
+                    <button type="button" className="menu-item" onClick={logout}>Log out</button>
+                  </>
+                )}
               </div>
             )}
           </div>
@@ -369,6 +384,8 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
           </button>
         </div>
       </aside>
+
+      {tokensOpen && <ApiTokensDialog onClose={() => setTokensOpen(false)} />}
 
       {menu && (
         <ContextMenu

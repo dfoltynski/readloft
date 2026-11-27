@@ -18,7 +18,11 @@ RUN sh scripts/fetch-foliate.sh && rm -rf web/public/foliate-js/.git \
 
 # ---- runtime ----
 FROM node:24-alpine
-LABEL org.opencontainers.image.licenses="AGPL-3.0-only" \
+ARG VERSION=dev
+LABEL org.opencontainers.image.title="Libristead" \
+      org.opencontainers.image.description="Self-hosted ebook library and reader" \
+      org.opencontainers.image.version="${VERSION}" \
+      org.opencontainers.image.licenses="AGPL-3.0-only" \
       org.opencontainers.image.source="https://github.com/dfoltynski/libristead"
 WORKDIR /app
 ENV NODE_ENV=production \
@@ -39,4 +43,6 @@ USER node
 EXPOSE 8080
 VOLUME ["/books", "/data"]
 WORKDIR /app/server
+HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:'+(process.env.PORT||8080)+'/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 CMD ["node", "src/index.ts"]

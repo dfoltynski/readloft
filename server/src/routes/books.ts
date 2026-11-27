@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: AGPL-3.0-only
-import { Hono } from 'hono';
+import { Hono, type Context } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import fs from 'node:fs';
 import fsp from 'node:fs/promises';
@@ -177,8 +177,9 @@ async function availabilityFor(id: string, start: boolean): Promise<BookAvailabi
 books.get('/books/:id/availability', async (c) => c.json(await availabilityFor(c.req.param('id'), false)));
 books.post('/books/:id/download', async (c) => c.json(await availabilityFor(c.req.param('id'), true)));
 
-books.get('/books/:id/file', async (c) => {
-  const row = getBookRow(c.req.param('id'));
+/** Stream a book file with Range support. Shared by /api and /opds. */
+export async function serveBookFile(c: Context, id: string, opts: { mime?: string; disposition?: 'inline' | 'attachment' } = {}): Promise<Response> {
+  const row = getBookRow(id);
   if (!row) throw new HttpError(404, 'book not found');
   const abs = safeLibraryPath(row.path);
   if (!abs) throw new HttpError(400, 'invalid path');
@@ -188,8 +189,8 @@ books.get('/books/:id/file', async (c) => {
   const fileName = path.basename(row.path);
   const ascii = fileName.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_');
   const headers: Record<string, string> = {
-    'Content-Type': MIME[row.format] ?? 'application/octet-stream',
-    'Content-Disposition': `inline; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
+    'Content-Type': opts.mime ?? MIME[row.format] ?? 'application/octet-stream',
+    'Content-Disposition': `${opts.disposition ?? 'inline'}; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(fileName)}`,
     'Accept-Ranges': 'bytes',
     'Last-Modified': st.mtime.toUTCString(),
     // Books are already local (or in iCloud); don't keep a second copy in the browser/Electron disk cache.
@@ -221,10 +222,12 @@ books.get('/books/:id/file', async (c) => {
   if (size === 0) return new Response(null, { status: 200, headers });
   const stream = fs.createReadStream(abs, { start, end });
   return new Response(Readable.toWeb(stream) as ReadableStream, { status, headers });
-});
+}
 
-books.get('/books/:id/cover', async (c) => {
-  const id = c.req.param('id');
+books.get('/books/:id/file', (c) => serveBookFile(c, c.req.param('id')));
+
+/** Serve a cover image with ETag caching. Shared by /api and /opds. */
+export async function serveCover(c: Context, id: string): Promise<Response> {
   const cv = findCover(id);
   if (!cv) throw new HttpError(404, 'no cover');
   const etag = `"${Math.floor(cv.mtimeMs)}-${cv.size}"`;
@@ -232,7 +235,9 @@ books.get('/books/:id/cover', async (c) => {
   if (c.req.header('if-none-match') === etag) return new Response(null, { status: 304, headers: base });
   const data = await fsp.readFile(cv.file);
   return new Response(data, { headers: { ...base, 'Content-Type': cv.mime, 'Content-Length': String(data.length) } });
-});
+}
+
+books.get('/books/:id/cover', (c) => serveCover(c, c.req.param('id')));
 
 books.put('/books/:id/cover', async (c) => {
   const id = c.req.param('id');

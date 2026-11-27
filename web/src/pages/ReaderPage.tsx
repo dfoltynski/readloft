@@ -3,7 +3,7 @@ import { runtimeImport } from '../lib/runtimeImport';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import type { Book, Bookmark } from '@shared/types';
-import { api, fileUrl } from '../api';
+import { api, fileUrl, onUnauthorized } from '../api';
 import { IconClose } from '../components/Icons';
 import NightLightOverlay from '../components/NightLightOverlay';
 import HelpOverlay from '../components/reader/HelpOverlay';
@@ -514,6 +514,7 @@ export default function ReaderPage() {
         let file = fileRef.current && fileIdRef.current === id ? fileRef.current : null;
         if (!file) {
           const res = await fetch(fileUrl(id));
+          if (res.status === 401) onUnauthorized();
           if (!res.ok) throw new Error(`Could not download the book (${res.status})`);
           const blob = await res.blob();
           if (cancelled) return;
