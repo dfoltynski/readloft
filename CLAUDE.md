@@ -1,4 +1,4 @@
-# Readloft
+# Libristead
 
 Self-hosted ebook library + reader.
 

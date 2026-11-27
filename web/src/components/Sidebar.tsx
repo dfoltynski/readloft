@@ -153,7 +153,7 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
       <aside className={`sidebar${open ? ' open' : ''}`} aria-label="Library navigation">
         <Link to="/" className="brand">
           <IconLogo size={22} />
-          <span>Readloft</span>
+          <span>Libristead</span>
         </Link>
 
         <nav className="side-scroll">
@@ -337,23 +337,23 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
             <button
               className="icon-btn"
               onClick={() => setAboutOpen((o) => !o)}
-              aria-label="About Readloft"
+              aria-label="About Libristead"
               aria-expanded={aboutOpen}
             >
               <IconInfo />
             </button>
             {aboutOpen && (
-              <div className="menu sync-pop" role="dialog" aria-label="About Readloft">
-                <div className="sync-line"><strong>Readloft</strong> <span className="muted">{__APP_VERSION__}</span></div>
+              <div className="menu sync-pop" role="dialog" aria-label="About Libristead">
+                <div className="sync-line"><strong>Libristead</strong> <span className="muted">{__APP_VERSION__}</span></div>
                 <div className="sync-line">
-                  Free software under the <a href="https://github.com/dfoltynski/readloft/blob/main/LICENSE" target="_blank" rel="noreferrer">GNU AGPL-3.0</a>.
+                  Free software under the <a href="https://github.com/dfoltynski/libristead/blob/main/LICENSE" target="_blank" rel="noreferrer">GNU AGPL-3.0</a>.
                 </div>
                 <div className="sync-line">
                   The reader is built on <a href="https://github.com/johnfactotum/foliate-js" target="_blank" rel="noreferrer">foliate-js</a> by John Factotum (MIT).
                 </div>
                 <div className="menu-sep" />
-                <div className="sync-line"><a href="https://github.com/dfoltynski/readloft/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">Third-party licenses</a></div>
-                <div className="sync-line"><a href="https://github.com/dfoltynski/readloft" target="_blank" rel="noreferrer">Source code</a></div>
+                <div className="sync-line"><a href="https://github.com/dfoltynski/libristead/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">Third-party licenses</a></div>
+                <div className="sync-line"><a href="https://github.com/dfoltynski/libristead" target="_blank" rel="noreferrer">Source code</a></div>
               </div>
             )}
           </div>

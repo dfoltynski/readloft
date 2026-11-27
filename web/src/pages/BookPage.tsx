@@ -27,9 +27,9 @@ export default function BookPage() {
   const coverInput = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    document.title = book.data ? `${book.data.title} · Readloft` : 'Readloft';
+    document.title = book.data ? `${book.data.title} · Libristead` : 'Libristead';
     return () => {
-      document.title = 'Readloft';
+      document.title = 'Libristead';
     };
   }, [book.data]);
 

@@ -1,10 +1,10 @@
-# Contributing to Readloft
+# Contributing to Libristead
 
 Thanks for helping! Start with `CLAUDE.md` / `README.md` for layout and commands.
 
 ## License of contributions
 
-Readloft is licensed under the GNU Affero General Public License v3.0 only
+Libristead is licensed under the GNU Affero General Public License v3.0 only
 (`AGPL-3.0-only`). Contributions are accepted under the same license. There is
 no CLA and no copyright assignment.
 

@@ -40,7 +40,7 @@ type Item =
   | { kind: 'cue'; label: string; el: Element | null; speech?: string };
 
 const ABBREV = /(?:^|[\s("“])(?:Mr|Mrs|Ms|Mx|Dr|Prof|Sr|Jr|St|Mt|vs|etc|No|Fig|Vol|Rev|Gen|Col|Capt|Lt|Sgt|Hon|Inc|Ltd|Co|e\.g|i\.e|cf|approx)\.$/;
-const HIGHLIGHT = 'readloft-tts';
+const HIGHLIGHT = 'libristead-tts';
 const MAX_CHUNK = 220;
 const NOTICE_MS = 12000;
 
@@ -284,9 +284,9 @@ export class ReadAloud {
   }
 
   private ensureStyle(doc: Document) {
-    if (doc.getElementById('readloft-tts-style')) return;
+    if (doc.getElementById('libristead-tts-style')) return;
     const st = doc.createElement('style');
-    st.id = 'readloft-tts-style';
+    st.id = 'libristead-tts-style';
     st.textContent = `::highlight(${HIGHLIGHT}) { background-color: rgba(255, 200, 40, 0.45); color: inherit; }`;
     doc.head?.append(st);
   }

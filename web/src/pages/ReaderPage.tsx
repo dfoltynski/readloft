@@ -378,8 +378,8 @@ export default function ReaderPage() {
   useEffect(() => {
     if (state.kind !== 'ready') return;
     try {
-      if (localStorage.getItem('readloft.studioHint')) return;
-      localStorage.setItem('readloft.studioHint', '1');
+      if (localStorage.getItem('libristead.studioHint')) return;
+      localStorage.setItem('libristead.studioHint', '1');
     } catch { /* storage unavailable: show once per session */ }
     toast('Move to the top or bottom edge, or click the middle of the page, to show controls', 'info', { duration: 7000 });
   }, [state.kind]); // eslint-disable-line react-hooks/exhaustive-deps

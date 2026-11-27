@@ -19,9 +19,9 @@ export const DEFAULT_NIGHT_LIGHT: NightLightSettings = {
   mode: 'off', strength: 40, from: '20:00', to: '07:00', dim: 0,
 };
 
-export const NIGHT_LIGHT_KEY = 'readloft.nightlight';
+export const NIGHT_LIGHT_KEY = 'libristead.nightlight';
 /** Same-tab change notification (the `storage` event only fires in other tabs). */
-const CHANGE_EVENT = 'readloft:nightlight';
+const CHANGE_EVENT = 'libristead:nightlight';
 
 const clamp = (n: unknown, lo: number, hi: number, fallback: number) =>
   typeof n === 'number' && Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : fallback;

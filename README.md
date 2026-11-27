@@ -1,8 +1,10 @@
 <p align="center">
-  <img src="docs/logo.svg" alt="Readloft logo" width="96" height="96">
+  <img src="docs/logo.svg" alt="Libristead logo" width="96" height="96">
 </p>
 
-<h1 align="center">Readloft</h1>
+<h1 align="center">Libristead</h1>
+
+<p align="center"><em>Formerly Readloft.</em></p>
 
 <p align="center">
   Your ebook library, self-hosted. Read anywhere, sync everywhere.
@@ -10,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="license: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
-  <a href="../../releases"><img alt="release" src="https://img.shields.io/github/v/release/dfoltynski/readloft?include_prereleases"></a>
+  <a href="../../releases"><img alt="release" src="https://img.shields.io/github/v/release/dfoltynski/libristead?include_prereleases"></a>
   <img alt="node 24+" src="https://img.shields.io/badge/node-24%2B-339933">
   <img alt="docker ready" src="https://img.shields.io/badge/docker-ready-2496ED">
   <img alt="platforms: macOS | Linux | Windows" src="https://img.shields.io/badge/platforms-macOS%20%7C%20Linux%20%7C%20Windows-lightgrey">
@@ -26,10 +28,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/library.png" alt="Readloft library with a Continue reading row, book grid and the Selected inspector" width="900">
+  <img src="docs/screenshots/library.png" alt="Libristead library with a Continue reading row, book grid and the Selected inspector" width="900">
 </p>
 
-Point Readloft at a folder of books, open a browser (or the desktop app) and read. It runs on your own machine or server, keeps your reading state in a local SQLite database, and needs no account.
+Point Libristead at a folder of books, open a browser (or the desktop app) and read. It runs on your own machine or server, keeps your reading state in a local SQLite database, and needs no account.
 
 ## Features
 
@@ -107,8 +109,8 @@ flowchart LR
 ## Quick start (Docker)
 
 ```sh
-git clone https://github.com/dfoltynski/readloft.git
-cd readloft
+git clone https://github.com/dfoltynski/libristead.git
+cd libristead
 docker compose up -d --build
 # open http://localhost:8080 — put books in ./books
 ```
@@ -127,8 +129,8 @@ docker compose up -d --build
 Requires Node 24+ (server runs TypeScript natively, no build step) and git.
 
 ```sh
-git clone https://github.com/dfoltynski/readloft.git
-cd readloft
+git clone https://github.com/dfoltynski/libristead.git
+cd libristead
 npm install
 npm run setup      # vendors foliate-js into web/public/foliate-js
 npm run dev        # API on :8080, web on :5173 (proxies /api)
@@ -146,11 +148,11 @@ scripts/          setup helpers
 
 ## Desktop app
 
-Download the installer for your OS (macOS `.dmg`, Windows `.exe`, Linux `.AppImage` / `.deb`) from the [Releases](../../releases) page. On first launch Readloft asks for your library folder (this can be an iCloud Drive folder); change it later from the app menu. The app runs the same server as the Docker setup, on port 8080 (or a free port if that is taken), so LAN and Tailscale access keep working.
+Download the installer for your OS (macOS `.dmg`, Windows `.exe`, Linux `.AppImage` / `.deb`) from the [Releases](../../releases) page. On first launch Libristead asks for your library folder (this can be an iCloud Drive folder); change it later from the app menu. The app runs the same server as the Docker setup, on port 8080 (or a free port if that is taken), so LAN and Tailscale access keep working.
 
 The builds are unsigned, so your OS will warn on first run:
 
-- macOS: right-click the app and choose Open, or run `xattr -dr com.apple.quarantine /Applications/Readloft.app`.
+- macOS: right-click the app and choose Open, or run `xattr -dr com.apple.quarantine /Applications/Libristead.app`.
 - Windows SmartScreen: click More info, then Run anyway.
 
 To cut a release, push a version tag. GitHub Actions builds all platforms and attaches them to a draft release:
@@ -178,7 +180,7 @@ npm run dist -w desktop -- --mac
 
 # macOS: just the .app for this Mac (fast, no .dmg), then install it
 npm run dist -w desktop -- --mac dir --arm64      # use --x64 on Intel Macs
-ditto desktop/release/mac-arm64/Readloft.app /Applications/Readloft.app
+ditto desktop/release/mac-arm64/Libristead.app /Applications/Libristead.app
 
 # Linux: AppImage + .deb
 npm run dist -w desktop -- --linux
@@ -192,7 +194,7 @@ npm run dist -w desktop -- --mac --linux --win
 
 Linux and Windows builds are most reliable on their own OS. Cross-building Windows from macOS may need Wine. For all three platforms, pushing a version tag (above) builds them on GitHub Actions.
 
-Quit any running Readloft (including `npm run desktop:dev`) before opening a freshly installed build. The app is single-instance, so a running copy takes over.
+Quit any running Libristead (including `npm run desktop:dev`) before opening a freshly installed build. The app is single-instance, so a running copy takes over.
 
 ## Keyboard shortcuts
 
@@ -209,7 +211,7 @@ Press `?` anywhere for the full cheatsheet (source: `web/src/lib/shortcuts.ts`).
 
 ## Sync between devices
 
-Point several Readloft installs (e.g. desktop apps on two Macs) at the same library folder, such as an iCloud Drive folder, and they share reading state. Each device keeps its own local database and writes one file, `<library>/.readloft/sync/<deviceId>.json`, holding its full state. It reads the other devices' files every 20 seconds (and after each scan) and merges them record by record, newest change wins.
+Point several Libristead installs (e.g. desktop apps on two Macs) at the same library folder, such as an iCloud Drive folder, and they share reading state. Each device keeps its own local database and writes one file, `<library>/.libristead/sync/<deviceId>.json`, holding its full state. It reads the other devices' files every 20 seconds (and after each scan) and merges them record by record, newest change wins.
 
 - **Syncs:** reading progress and position, status, edited metadata, bookmarks, notes and highlights, manual shelves and their contents.
 - **Does not sync:** reader display settings, custom covers, folder shelves (derived from the folder layout).
@@ -229,16 +231,16 @@ Point several Readloft installs (e.g. desktop apps on two Macs) at the same libr
 
 ## Contributing
 
-Issues and pull requests are welcome at <https://github.com/dfoltynski/readloft>. See [CONTRIBUTING.md](CONTRIBUTING.md).
+Issues and pull requests are welcome at <https://github.com/dfoltynski/libristead>. See [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## License
 
-Readloft is free and open source software under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`). Contributions are accepted under the same license with a Developer Certificate of Origin sign-off; see [CONTRIBUTING.md](CONTRIBUTING.md).
+Libristead is free and open source software under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`). Contributions are accepted under the same license with a Developer Certificate of Origin sign-off; see [CONTRIBUTING.md](CONTRIBUTING.md).
 
 Versions up to and including 0.2.0 were released under the PolyForm Noncommercial License 1.0.0. Starting with 0.3.0 the project is licensed under AGPL-3.0-only.
 
 The reader is built on [foliate-js](https://github.com/johnfactotum/foliate-js) by John Factotum (MIT), pinned to a fixed commit in `scripts/foliate.lock`. Third-party licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
-The Readloft name and logo (`docs/logo.svg`, `web/public/icon.svg`, `desktop/build/icon.png`) are original artwork made for this project from basic geometric shapes, not derived from any icon set or third-party mark. They are not covered by the code license: forks must use their own name and logo.
+The Libristead name and logo (`docs/logo.svg`, `web/public/icon.svg`, `desktop/build/icon.png`) are original artwork made for this project from basic geometric shapes, not derived from any icon set or third-party mark. They are not covered by the code license: forks must use their own name and logo.
 
 Demo books in the screenshots are public-domain editions from [Standard Ebooks](https://standardebooks.org) (CC0).

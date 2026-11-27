@@ -19,7 +19,7 @@ RUN sh scripts/fetch-foliate.sh && rm -rf web/public/foliate-js/.git \
 # ---- runtime ----
 FROM node:24-alpine
 LABEL org.opencontainers.image.licenses="AGPL-3.0-only" \
-      org.opencontainers.image.source="https://github.com/dfoltynski/readloft"
+      org.opencontainers.image.source="https://github.com/dfoltynski/libristead"
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080 \

@@ -65,7 +65,7 @@ export function libraryNotesMarkdown(list: AnnotationWithBook[]): string {
     if (g) g.push(a);
     else groups.set(a.bookId, [a]);
   }
-  const parts = ['# Readloft notes\n'];
+  const parts = ['# Libristead notes\n'];
   for (const g of groups.values()) {
     const sorted = [...g].sort((x, y) => x.progress - y.progress);
     parts.push(bookNotesMarkdown(g[0].bookTitle, g[0].bookAuthors, sorted, 2));

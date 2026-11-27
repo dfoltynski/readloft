@@ -11,6 +11,26 @@ const packaged = fs.existsSync(path.join(here, 'server', 'src', 'index.ts'));
 const serverEntry = packaged ? path.join(here, 'server', 'src', 'index.ts') : path.join(here, '..', 'server', 'src', 'index.ts');
 const webDist = packaged ? path.join(here, 'web-dist') : path.join(here, '..', 'web', 'dist');
 
+// Migrate app data from the former name (Readloft): userData follows productName, so the folder name changed.
+// Must run before anything touches userData and before app ready.
+function migrateLegacyUserData() {
+  try {
+    const next = app.getPath('userData');
+    const legacy = path.join(path.dirname(next), 'Read' + 'loft');
+    if (fs.existsSync(next) || !fs.existsSync(legacy)) return;
+    try {
+      fs.renameSync(legacy, next);
+      console.log(`Migrated app data ${legacy} -> ${next}`);
+    } catch {
+      fs.cpSync(legacy, next, { recursive: true });
+      console.log(`Copied app data ${legacy} -> ${next} (rename failed; legacy folder left in place)`);
+    }
+  } catch (err) {
+    console.error('App data migration failed', err);
+  }
+}
+migrateLegacyUserData();
+
 const userData = app.getPath('userData');
 const configFile = path.join(userData, 'config.json');
 const dataDir = path.join(userData, 'data');
@@ -29,7 +49,7 @@ function writeConfig(cfg) {
 
 async function pickLibraryFolder(current) {
   const res = await dialog.showOpenDialog({
-    title: 'Choose your Readloft library folder',
+    title: 'Choose your Libristead library folder',
     message: 'Choose the folder that holds your books. It can be an iCloud Drive folder.',
     buttonLabel: 'Use This Folder',
     defaultPath: current || app.getPath('documents'),
@@ -72,7 +92,7 @@ function openWindow() {
   win = new BrowserWindow({
     width: 1280,
     height: 860,
-    title: 'Readloft',
+    title: 'Libristead',
     autoHideMenuBar: true,
     webPreferences: { contextIsolation: true, sandbox: true },
   });
@@ -107,7 +127,7 @@ function buildMenu() {
     { role: 'quit' },
   ];
   const template = [
-    { label: 'Readloft', submenu: items },
+    { label: 'Libristead', submenu: items },
     { role: 'editMenu' },
     { role: 'viewMenu' },
     { role: 'windowMenu' },
@@ -145,7 +165,7 @@ if (!app.requestSingleInstanceLock()) {
     if (process.platform !== 'darwin' && !quitting) app.quit();
   });
   app.whenReady().then(start).catch((err) => {
-    dialog.showErrorBox('Readloft failed to start', String(err?.stack || err));
+    dialog.showErrorBox('Libristead failed to start', String(err?.stack || err));
     app.quit();
   });
 }

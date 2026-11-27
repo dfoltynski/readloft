@@ -41,7 +41,7 @@ if (hasWeb) {
 }
 
 serve({ fetch: app.fetch, port: PORT }, () => {
-  console.log(`Readloft listening on :${PORT} | library=${LIBRARY_DIR} data=${DATA_DIR} web=${hasWeb ? WEB_DIST : 'none'}`);
+  console.log(`Libristead listening on :${PORT} | library=${LIBRARY_DIR} data=${DATA_DIR} web=${hasWeb ? WEB_DIST : 'none'}`);
 });
 
 scanLibrary().then((r) => console.log(`Initial scan: +${r.added} ~${r.updated} -${r.removed} in ${r.durationMs}ms`));

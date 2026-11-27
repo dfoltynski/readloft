@@ -1,6 +1,6 @@
 # Third-party notices
 
-Readloft is licensed under AGPL-3.0-only (see [LICENSE](LICENSE)). It includes or depends on the third-party software listed below, each under its own license.
+Libristead is licensed under AGPL-3.0-only (see [LICENSE](LICENSE)). It includes or depends on the third-party software listed below, each under its own license.
 
 ## foliate-js (the ebook reader engine)
 
@@ -83,4 +83,4 @@ Production dependencies of `server` and `web` (from `npm ls --omit=dev`). Their 
 | `strnum@1.1.2` | MIT |
 | `util-deprecate@1.0.2` | MIT |
 
-`jszip` is dual-licensed MIT OR GPL-3.0-or-later; Readloft uses it under MIT.
+`jszip` is dual-licensed MIT OR GPL-3.0-or-later; Libristead uses it under MIT.

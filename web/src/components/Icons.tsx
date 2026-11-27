@@ -26,7 +26,7 @@ function Svg({ size = 18, children }: IconProps & { children: ReactNode }) {
 
 export const IconLogo = (p: IconProps) => (
   <Svg {...p}>
-    {/* Readloft mark: a bookmark with a loft-gable top and lines of text */}
+    {/* Libristead mark: a bookmark with a loft-gable top and lines of text */}
     <path d="M12 3l6 4v13l-6-3.2L6 20V7z" />
     <path d="M9.5 10h5M9.5 13h3" />
   </Svg>

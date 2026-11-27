@@ -50,14 +50,14 @@ export default function LibraryPage() {
 
   const statusParam = params.get('status');
   const status = STATUSES.find((s) => s === statusParam);
-  const [storedSort, setStoredSort] = useLocalStorage<BookSort>('readloft.sort', 'added');
+  const [storedSort, setStoredSort] = useLocalStorage<BookSort>('libristead.sort', 'added');
   const findSort = (v: string | null) => SORTS.find((s) => s.value === v)?.value;
   const sort: BookSort = findSort(params.get('sort')) ?? findSort(storedSort) ?? 'added';
   const urlQuery = params.get('q') ?? '';
 
   const [search, setSearch] = useState(urlQuery);
   const debouncedSearch = useDebounced(search, 250);
-  const [view, setView] = useLocalStorage<'grid' | 'list'>('readloft.view', 'grid');
+  const [view, setView] = useLocalStorage<'grid' | 'list'>('libristead.view', 'grid');
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [menu, setMenu] = useState<{ book: Book; x: number; y: number } | null>(null);
   const [toDelete, setToDelete] = useState<Book | null>(null);

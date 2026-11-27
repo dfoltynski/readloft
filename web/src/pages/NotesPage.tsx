@@ -45,8 +45,8 @@ export default function NotesPage() {
   const total = useAsync(() => api.searchAnnotations(), []);
 
   useEffect(() => {
-    document.title = 'Notes · Readloft';
-    return () => { document.title = 'Readloft'; };
+    document.title = 'Notes · Libristead';
+    return () => { document.title = 'Libristead'; };
   }, []);
   const closeDrawer = useCallback(() => setDrawerOpen(false), []);
   const reload = () => { shelves.reload(); stats.reload(); notes.reload(); total.reload(); };
@@ -126,7 +126,7 @@ export default function NotesPage() {
   );
 
   const exportMd = () => {
-    downloadText('Readloft notes.md', libraryNotesMarkdown(list));
+    downloadText('Libristead notes.md', libraryNotesMarkdown(list));
     toast(`Exported ${list.length} ${list.length === 1 ? 'note' : 'notes'}`);
   };
 

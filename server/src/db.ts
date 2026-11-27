@@ -4,6 +4,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import type { Book, BookFormat, BookStatus } from '../../shared/types.ts';
 import { DATA_DIR } from './config.ts';
+import { migrateDbFile } from './legacy.ts';
 
 const MIGRATIONS: string[] = [
   `CREATE TABLE books (
@@ -79,14 +80,8 @@ const MIGRATIONS: string[] = [
 ];
 
 fs.mkdirSync(DATA_DIR, { recursive: true });
-// One-time migration from the project's former name (Bookread).
-const dbPath = path.join(DATA_DIR, 'readloft.db');
-const legacyDbPath = path.join(DATA_DIR, 'bookread.db');
-if (!fs.existsSync(dbPath) && fs.existsSync(legacyDbPath)) {
-  for (const suffix of ['', '-wal', '-shm']) {
-    if (fs.existsSync(legacyDbPath + suffix)) fs.renameSync(legacyDbPath + suffix, dbPath + suffix);
-  }
-}
+// One-time migration from the project's former names (Readloft, Bookread).
+const dbPath = migrateDbFile(DATA_DIR);
 export const db = new DatabaseSync(dbPath);
 
 export function migrate(): void {

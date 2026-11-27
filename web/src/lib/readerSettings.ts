@@ -56,7 +56,7 @@ export const DEFAULT_SETTINGS: ReaderSettings = {
   autoHide: true,
 };
 
-const STORAGE_KEY = 'readloft.reader';
+const STORAGE_KEY = 'libristead.reader';
 
 export function loadSettings(): ReaderSettings {
   try {

@@ -1,11 +1,11 @@
 {
-  "name": "@readloft/desktop",
-  "productName": "Readloft",
+  "name": "@libristead/desktop",
+  "productName": "Libristead",
   "version": "0.2.0",
   "description": "Self-hosted ebook library and reader",
   "license": "AGPL-3.0-only",
   "author": "dfoltynski",
-  "homepage": "https://github.com/dfoltynski/readloft",
+  "homepage": "https://github.com/dfoltynski/libristead",
   "private": true,
   "type": "module",
   "main": "main.js",
@@ -26,8 +26,8 @@
     "electron-builder": "^26.18.0"
   },
   "build": {
-    "appId": "app.readloft.desktop",
-    "productName": "Readloft",
+    "appId": "app.libristead.desktop",
+    "productName": "Libristead",
     "asar": false,
     "npmRebuild": false,
     "directories": { "buildResources": "build", "output": "release" },
@@ -38,7 +38,7 @@
       { "from": "../shared", "to": "shared", "filter": ["**/*"] },
       { "from": "../web/dist", "to": "web-dist", "filter": ["**/*", "!**/.git/**"] }
     ],
-    "artifactName": "Readloft-${version}-${os}-${arch}.${ext}",
+    "artifactName": "Libristead-${version}-${os}-${arch}.${ext}",
     "mac": {
       "category": "public.app-category.books",
       "identity": null,
@@ -48,7 +48,7 @@
       "category": "Office",
       "maintainer": "dfoltynski",
       "target": ["AppImage", "deb"],
-      "executableName": "readloft"
+      "executableName": "libristead"
     },
     "win": {
       "target": [{ "target": "nsis", "arch": ["x64"] }]

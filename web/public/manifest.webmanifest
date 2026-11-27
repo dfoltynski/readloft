@@ -1,6 +1,6 @@
 {
-  "name": "Readloft",
-  "short_name": "Readloft",
+  "name": "Libristead",
+  "short_name": "Libristead",
   "description": "Self-hosted ebook library and reader",
   "start_url": "/",
   "scope": "/",

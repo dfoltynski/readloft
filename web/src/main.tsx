@@ -7,17 +7,19 @@ import { ToastProvider } from './components/Toast';
 import './styles.css';
 import './design/studio.css';
 
-// One-time migration of storage keys from the project's former name (Bookread).
+// One-time migration of storage keys from the project's former names (Bookread, Readloft).
 function migrateStorage(store: Storage): void {
   try {
-    const old = 'book' + 'read';
-    const keys: string[] = [];
+    const olds = ['book' + 'read', 'read' + 'loft'];
+    const keys: [string, string][] = [];
     for (let i = 0; i < store.length; i++) {
       const k = store.key(i);
-      if (k && (k.startsWith(`${old}.`) || k.startsWith(`${old}:`))) keys.push(k);
+      if (!k) continue;
+      for (const old of olds) {
+        if (k.startsWith(`${old}.`) || k.startsWith(`${old}:`)) keys.push([k, 'libristead' + k.slice(old.length)]);
+      }
     }
-    for (const k of keys) {
-      const next = 'readloft' + k.slice(old.length);
+    for (const [k, next] of keys) {
       if (store.getItem(next) === null) store.setItem(next, store.getItem(k) ?? '');
       store.removeItem(k);
     }
@@ -25,7 +27,10 @@ function migrateStorage(store: Storage): void {
 }
 migrateStorage(localStorage);
 migrateStorage(sessionStorage);
-try { localStorage.removeItem('readloft.designSystem'); } catch { /* ignore */ }
+try {
+  localStorage.removeItem('libristead.designSystem');
+  localStorage.removeItem('read' + 'loft.designSystem');
+} catch { /* ignore */ }
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

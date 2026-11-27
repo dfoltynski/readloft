@@ -1,8 +1,8 @@
 /*
- * Studio design system for Readloft. Everything is scoped under :root[data-ds="studio"] (set
+ * Studio design system for Libristead. Everything is scoped under :root[data-ds="studio"] (set
  * statically on <html> in index.html; the scope keeps these rules above the base styles). Tokens come from
  * the drape studio language (ink on paper; Manrope / Space Grotesk / JetBrains Mono / Literata)
- * plus Readloft's brand orange. Dark variant: inverted ink-on-dark palette, same structure.
+ * plus Libristead's brand orange. Dark variant: inverted ink-on-dark palette, same structure.
  */
 
 /* ---------- Tokens ---------- */

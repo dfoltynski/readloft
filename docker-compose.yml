@@ -1,7 +1,7 @@
 services:
-  readloft:
+  libristead:
     build: .
-    container_name: readloft
+    container_name: libristead
     ports:
       - "8080:8080"
     volumes:

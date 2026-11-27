@@ -63,5 +63,5 @@ export const READER_SHORTCUTS: ShortcutGroup[] = [
 ];
 
 /** Opens the app-wide shortcuts overlay (handled by ShortcutsHost). */
-export const SHORTCUTS_EVENT = 'readloft:shortcuts';
+export const SHORTCUTS_EVENT = 'libristead:shortcuts';
 export const openShortcuts = () => window.dispatchEvent(new Event(SHORTCUTS_EVENT));

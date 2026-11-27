@@ -4,7 +4,7 @@ import type { SyncStatus } from '@shared/types';
 import { api } from '../api';
 
 /** Fired on window after "Sync now" finished, so pages can reload their data. */
-export const SYNCED_EVENT = 'readloft:synced';
+export const SYNCED_EVENT = 'libristead:synced';
 
 /** Polled sync status plus a "sync now" action. */
 export function useSyncStatus() {

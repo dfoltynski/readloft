@@ -105,9 +105,9 @@ export default function StudioTopBar({ active, search, onUpload, onChanged, onMe
       {onMenu && (
         <button className="st-icon-btn st-menu-btn" aria-label="Open sidebar" onClick={onMenu}><SIcon.Menu /></button>
       )}
-      <Link to="/" className="st-brand" aria-label="Readloft home">
+      <Link to="/" className="st-brand" aria-label="Libristead home">
         <LogoTile />
-        <b>readloft</b>
+        <b>libristead</b>
       </Link>
       <nav className="st-nav" aria-label="Sections">
         <Link to="/" aria-current={active === 'library' ? 'page' : undefined}>Library</Link>

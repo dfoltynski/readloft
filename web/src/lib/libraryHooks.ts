@@ -53,7 +53,7 @@ export function useSelectionShortcuts(active: boolean, onClear: () => void, onSe
  * once `ready` becomes true, so returning from a book lands where you left.
  */
 export function useScrollRestore(ref: RefObject<HTMLElement>, key: string, ready: boolean) {
-  const storageKey = `readloft.scroll:${key}`;
+  const storageKey = `libristead.scroll:${key}`;
 
   useEffect(() => {
     const el = ref.current;

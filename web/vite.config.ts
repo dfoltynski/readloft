@@ -6,6 +6,11 @@ import { readFileSync } from 'node:fs';
 
 const pkg = JSON.parse(readFileSync(new URL('../package.json', import.meta.url), 'utf8'));
 
+if (process.env.READLOFT_API && !process.env.LIBRISTEAD_API) {
+  console.warn('READLOFT_API is deprecated; use LIBRISTEAD_API instead.');
+}
+const apiTarget = process.env.LIBRISTEAD_API ?? process.env.READLOFT_API ?? 'http://localhost:8080';
+
 export default defineConfig({
   define: { __APP_VERSION__: JSON.stringify(pkg.version) },
   plugins: [react()],
@@ -16,7 +21,7 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      '/api': process.env.READLOFT_API ?? 'http://localhost:8080',
+      '/api': apiTarget,
     },
   },
   build: {

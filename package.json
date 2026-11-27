@@ -1,5 +1,5 @@
 {
-  "name": "readloft",
+  "name": "libristead",
   "private": true,
   "version": "0.2.0",
   "description": "Self-hosted ebook library and reader",
@@ -12,6 +12,7 @@
   ],
   "scripts": {
     "setup": "sh scripts/fetch-foliate.sh",
+    "test": "node --test \"server/test/*.test.ts\"",
     "dev": "npm run dev -w server & npm run dev -w web",
     "build": "npm run build -w web",
     "start": "npm run start -w server",
