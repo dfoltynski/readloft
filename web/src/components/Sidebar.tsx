@@ -11,7 +11,7 @@ import { openShortcuts } from '../lib/shortcuts';
 import ContextMenu from './ContextMenu';
 import { useToast } from './Toast';
 import {
-  IconBooks, IconCheck, IconCircle, IconFolder, IconKeyboard, IconLogo, IconMoon, IconNote, IconPlus, IconReading, IconRefresh,
+  IconBooks, IconCheck, IconCircle, IconFolder, IconInfo, IconKeyboard, IconLogo, IconMoon, IconNote, IconPlus, IconReading, IconRefresh,
   IconShelf, IconSun, IconSync,
 } from './Icons';
 
@@ -56,6 +56,10 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
   const syncPop = useRef<HTMLDivElement>(null);
   const closeSync = useCallback(() => setSyncOpen(false), []);
   useDismiss(syncPop, syncOpen, closeSync);
+  const [aboutOpen, setAboutOpen] = useState(false);
+  const aboutPop = useRef<HTMLDivElement>(null);
+  const closeAbout = useCallback(() => setAboutOpen(false), []);
+  useDismiss(aboutPop, aboutOpen, closeAbout);
   useEffect(() => {
     let alive = true;
     const load = () => api.searchAnnotations().then((l) => alive && setNotesCount(l.length), () => {});
@@ -326,6 +330,30 @@ export default function Sidebar({ shelves, stats, activeShelfId, activeStatus, a
                     </button>
                   </>
                 )}
+              </div>
+            )}
+          </div>
+          <div className="sync-wrap" ref={aboutPop}>
+            <button
+              className="icon-btn"
+              onClick={() => setAboutOpen((o) => !o)}
+              aria-label="About Readloft"
+              aria-expanded={aboutOpen}
+            >
+              <IconInfo />
+            </button>
+            {aboutOpen && (
+              <div className="menu sync-pop" role="dialog" aria-label="About Readloft">
+                <div className="sync-line"><strong>Readloft</strong> <span className="muted">{__APP_VERSION__}</span></div>
+                <div className="sync-line">
+                  Free software under the <a href="https://github.com/dfoltynski/readloft/blob/main/LICENSE" target="_blank" rel="noreferrer">GNU AGPL-3.0</a>.
+                </div>
+                <div className="sync-line">
+                  The reader is built on <a href="https://github.com/johnfactotum/foliate-js" target="_blank" rel="noreferrer">foliate-js</a> by John Factotum (MIT).
+                </div>
+                <div className="menu-sep" />
+                <div className="sync-line"><a href="https://github.com/dfoltynski/readloft/blob/main/THIRD_PARTY_NOTICES.md" target="_blank" rel="noreferrer">Third-party licenses</a></div>
+                <div className="sync-line"><a href="https://github.com/dfoltynski/readloft" target="_blank" rel="noreferrer">Source code</a></div>
               </div>
             )}
           </div>

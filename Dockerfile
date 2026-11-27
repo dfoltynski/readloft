@@ -12,8 +12,8 @@ RUN npm ci
 COPY shared shared
 COPY scripts scripts
 COPY web web
-ARG FOLIATE_REF=main
-RUN FOLIATE_REF=$FOLIATE_REF sh scripts/fetch-foliate.sh && rm -rf web/public/foliate-js/.git \
+# foliate-js commit is pinned in scripts/foliate.lock
+RUN sh scripts/fetch-foliate.sh && rm -rf web/public/foliate-js/.git \
     && npm run build -w web
 
 # ---- runtime ----

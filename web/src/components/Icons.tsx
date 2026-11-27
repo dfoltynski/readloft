@@ -126,3 +126,10 @@ export const IconKeyboard = (p: IconProps) => (
     <path d="M7 10h.01M11 10h.01M15 10h.01M7 14h10" />
   </Svg>
 );
+
+export const IconInfo = (p: IconProps) => (
+  <Svg {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M12 11v5M12 8h.01" />
+  </Svg>
+);

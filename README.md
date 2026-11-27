@@ -237,7 +237,7 @@ Readloft is free and open source software under the [GNU Affero General Public L
 
 Versions up to and including 0.2.0 were released under the PolyForm Noncommercial License 1.0.0. Starting with 0.3.0 the project is licensed under AGPL-3.0-only.
 
-The vendored [foliate-js](https://github.com/johnfactotum/foliate-js) remains MIT-licensed by John Factotum.
+The reader is built on [foliate-js](https://github.com/johnfactotum/foliate-js) by John Factotum (MIT), pinned to a fixed commit in `scripts/foliate.lock`. Third-party licenses are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 The Readloft name and logo (`docs/logo.svg`, `web/public/icon.svg`, `desktop/build/icon.png`) are original artwork made for this project from basic geometric shapes, not derived from any icon set or third-party mark. They are not covered by the code license: forks must use their own name and logo.
 
