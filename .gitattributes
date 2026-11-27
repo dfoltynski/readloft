@@ -1,0 +1,2 @@
+*.sh text eol=lf
+scripts/foliate.lock text eol=lf

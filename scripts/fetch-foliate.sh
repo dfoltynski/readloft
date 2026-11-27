@@ -7,7 +7,7 @@ set -e
 cd "$(dirname "$0")/.."
 DEST="web/public/foliate-js"
 REPO="https://github.com/johnfactotum/foliate-js"
-SHA="$(tr -d ' \n' < scripts/foliate.lock)"
+SHA="$(tr -d ' \r\n' < scripts/foliate.lock)"
 case "$SHA" in
   *[!0-9a-f]*|"") echo "scripts/foliate.lock must hold a full commit SHA" >&2; exit 1 ;;
 esac
