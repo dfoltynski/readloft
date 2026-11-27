@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { Bookmark } from '@shared/types';
 
 /** Subset of foliate's epubcfi.js we use. */

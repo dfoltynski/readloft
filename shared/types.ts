@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 // Shared API contract between server and web. Keep this file dependency-free.
 //
 // REST API (all JSON unless noted, prefix /api):

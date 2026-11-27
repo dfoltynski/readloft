@@ -1,4 +1,5 @@
 #!/bin/sh
+# SPDX-License-Identifier: AGPL-3.0-only
 # Vendors foliate-js (MIT, https://github.com/johnfactotum/foliate-js) into web/public.
 # foliate-js is not published to npm; it is served as raw ES modules.
 set -e

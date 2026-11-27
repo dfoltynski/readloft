@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type {
   Annotation, AnnotationColor, AnnotationWithBook, Book, BookAvailability, BookPatch, Bookmark, BookStatus, LibraryStats, ProgressUpdate, ScanResult, Shelf, SyncStatus,
 } from '@shared/types';

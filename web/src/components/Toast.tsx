@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { createContext, useCallback, useContext, useRef, useState, type ReactNode } from 'react';
 
 type ToastKind = 'info' | 'error';

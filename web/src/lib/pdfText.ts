@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Text + image extraction for read-aloud on PDFs, using the pdf.js build vendored with foliate-js.
  * foliate's own PDF book object doesn't expose its document, so we open the file a second time

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { ReactNode } from 'react';
 
 function Svg({ size = 16, children, fill = 'none', sw = 2 }: { size?: number; children: ReactNode; fill?: string; sw?: number }) {

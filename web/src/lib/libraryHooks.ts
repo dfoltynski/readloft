@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, type RefObject } from 'react';
 
 const isTyping = (t: EventTarget | null) => {

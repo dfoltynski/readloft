@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 export default function UploadOverlay({ dragging, progress }: { dragging: boolean; progress: number | null }) {
   if (!dragging && progress === null) return null;
   return (

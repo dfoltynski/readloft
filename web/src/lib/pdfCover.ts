@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { Book } from '@shared/types';
 import { api, fileUrl } from '../api';
 import { runtimeImport } from './runtimeImport';

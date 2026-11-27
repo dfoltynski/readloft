@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Hono } from 'hono';
 import type { LibraryStats } from '../../../shared/types.ts';
 import { db } from '../db.ts';

@@ -18,6 +18,8 @@ RUN FOLIATE_REF=$FOLIATE_REF sh scripts/fetch-foliate.sh && rm -rf web/public/fo
 
 # ---- runtime ----
 FROM node:24-alpine
+LABEL org.opencontainers.image.licenses="AGPL-3.0-only" \
+      org.opencontainers.image.source="https://github.com/dfoltynski/readloft"
 WORKDIR /app
 ENV NODE_ENV=production \
     PORT=8080 \

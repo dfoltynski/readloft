@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { XMLParser } from 'fast-xml-parser';
 
 export interface ExtractedMeta {

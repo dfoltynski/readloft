@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import { useDismiss } from '../lib/hooks';
 

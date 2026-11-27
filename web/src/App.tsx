@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Route, Routes, useLocation } from 'react-router-dom';
 import LibraryPage from './pages/LibraryPage';
 import BookPage from './pages/BookPage';

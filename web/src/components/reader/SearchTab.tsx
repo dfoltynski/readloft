@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect, useRef } from 'react';
 import type { FoliateSearchExcerpt } from '../../foliate';
 import type { BookSearch } from './useBookSearch';

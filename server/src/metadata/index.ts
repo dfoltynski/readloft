@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import fs from 'node:fs/promises';
 import type { BookFormat } from '../../../shared/types.ts';
 import { fallbackMeta, type ExtractedMeta } from './util.ts';

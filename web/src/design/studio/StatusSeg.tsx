@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { BookStatus } from '@shared/types';
 
 const OPTIONS: [BookStatus, string][] = [['unread', 'Unread'], ['reading', 'Reading'], ['finished', 'Finished']];

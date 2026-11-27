@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Hono } from 'hono';
 import { randomUUID } from 'node:crypto';
 import type { Annotation, AnnotationColor, AnnotationWithBook } from '../../../shared/types.ts';

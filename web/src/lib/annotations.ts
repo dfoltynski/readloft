@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { Annotation, AnnotationColor, AnnotationWithBook } from '@shared/types';
 
 export const ANNOTATION_COLORS: AnnotationColor[] = ['yellow', 'green', 'blue', 'pink'];

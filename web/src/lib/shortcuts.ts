@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /** Single source of truth for keyboard shortcuts (help overlay, README). */
 export interface ShortcutGroup {
   title: string;

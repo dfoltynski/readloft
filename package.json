@@ -3,7 +3,7 @@
   "private": true,
   "version": "0.2.0",
   "description": "Self-hosted ebook library and reader",
-  "license": "PolyForm-Noncommercial-1.0.0",
+  "license": "AGPL-3.0-only",
   "type": "module",
   "workspaces": [
     "server",

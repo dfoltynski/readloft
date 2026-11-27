@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 // Minimal typings for the parts of foliate-js we use (vendored in public/foliate-js).
 
 export interface FoliateTocItem {

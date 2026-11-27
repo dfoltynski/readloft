@@ -9,7 +9,7 @@
 </p>
 
 <p align="center">
-  <a href="LICENSE"><img alt="license: PolyForm Noncommercial" src="https://img.shields.io/badge/license-PolyForm%20Noncommercial-blue"></a>
+  <a href="LICENSE"><img alt="license: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-blue"></a>
   <a href="../../releases"><img alt="release" src="https://img.shields.io/github/v/release/dfoltynski/readloft?include_prereleases"></a>
   <img alt="node 24+" src="https://img.shields.io/badge/node-24%2B-339933">
   <img alt="docker ready" src="https://img.shields.io/badge/docker-ready-2496ED">
@@ -233,7 +233,9 @@ Issues and pull requests are welcome at <https://github.com/dfoltynski/readloft>
 
 ## License
 
-Readloft is source-available under the [PolyForm Noncommercial License 1.0.0](LICENSE). It is free for personal and noncommercial use, including modification and forks. Commercial use requires a commercial license; see [COMMERCIAL.md](COMMERCIAL.md). Contributions are welcome under the terms in [CONTRIBUTING.md](CONTRIBUTING.md).
+Readloft is free and open source software under the [GNU Affero General Public License v3.0 only](LICENSE) (`AGPL-3.0-only`). Contributions are accepted under the same license with a Developer Certificate of Origin sign-off; see [CONTRIBUTING.md](CONTRIBUTING.md).
+
+Versions up to and including 0.2.0 were released under the PolyForm Noncommercial License 1.0.0. Starting with 0.3.0 the project is licensed under AGPL-3.0-only.
 
 The vendored [foliate-js](https://github.com/johnfactotum/foliate-js) remains MIT-licensed by John Factotum.
 

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { TtsState } from '../../lib/readAloud';
 import { IconPause, IconPlay, IconSkip, IconStop } from './ReaderIcons';
 

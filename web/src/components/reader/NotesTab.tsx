@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Fragment, useMemo, useState, type CSSProperties } from 'react';
 import type { Annotation, AnnotationColor } from '@shared/types';
 import { ANNOTATION_COLORS, COLOR_HEX, COLOR_LABEL, bookNotesMarkdown, downloadText, matchesFilter, shortDate, type AnnotationKindFilter } from '../../lib/annotations';

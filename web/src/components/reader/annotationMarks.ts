@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 // SVG drawing for annotations: a margin bar + dot (quiet default) and an optional translucent highlight.
 
 export interface RectLike { left: number; top: number; right: number; bottom: number; width: number; height: number }

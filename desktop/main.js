@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { app, BrowserWindow, Menu, dialog, shell } from 'electron';
 import fs from 'node:fs';
 import net from 'node:net';

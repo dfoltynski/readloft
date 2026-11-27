@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Read-aloud engine on top of the Web Speech API (`speechSynthesis`) and foliate's renderer.
  *

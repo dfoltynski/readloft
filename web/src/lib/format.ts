@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import type { Book } from '@shared/types';
 
 export const formatBytes = (n: number): string => {

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useEffect } from 'react';
 
 export const wakeLockSupported = typeof navigator !== 'undefined' && 'wakeLock' in navigator;

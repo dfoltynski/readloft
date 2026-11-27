@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { currentAppTheme } from './hooks';
 
 export type ReaderTheme = 'light' | 'paper' | 'sepia' | 'dark' | 'black' | 'app';

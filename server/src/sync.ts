@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 // Cross-device state sync through per-device JSON files in a shared folder (see README "Sync between devices").
 // Each device writes ONLY its own <deviceId>.json (full state, last-writer-wins per record) and merges the others.
 import fs from 'node:fs';

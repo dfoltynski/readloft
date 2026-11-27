@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import JSZip from 'jszip';
 import path from 'node:path';
 import { xml, arr, text, texts, stripHtml, toCover, type ExtractedMeta } from './util.ts';

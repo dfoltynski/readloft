@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { toCover, splitAuthors, type ExtractedMeta } from './util.ts';
 
 function dec(buf: Buffer, enc: number): string {

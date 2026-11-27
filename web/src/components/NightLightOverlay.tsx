@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useNightLight } from '../lib/nightLight';
 
 /** Max opacity of the amber layer at strength 100. */

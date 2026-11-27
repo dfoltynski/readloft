@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { Book, BookStatus, Shelf } from '@shared/types';

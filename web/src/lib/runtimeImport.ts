@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 /**
  * Import an ES module from a URL at runtime, invisible to Vite.
  *

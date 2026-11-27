@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import fs from 'node:fs';

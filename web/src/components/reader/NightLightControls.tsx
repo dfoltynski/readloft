@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { useNightLight, type NightLightMode } from '../../lib/nightLight';
 
 /** Night light section of the reader settings panel. */

@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: AGPL-3.0-only
 import { READER_SHORTCUTS, type ShortcutGroup } from '../../lib/shortcuts';
 
 export default function HelpOverlay({ onClose, groups = READER_SHORTCUTS }: { onClose: () => void; groups?: ShortcutGroup[] }) {
